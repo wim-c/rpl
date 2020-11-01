@@ -1,0 +1,28 @@
+
+start:
+"FIRST NUMBER: " print input tonumber &
+nl "SECOND NUMBER: " print input tonumber &
+; ; *
+nl "PROD " print chr print
+; ; / " QUO " print chr print
+\ " MOD " print chr print
+
+nl "AGAIN?" print again: get # if then . again goto end
+nl 'Y' peek = if start goto end
+stop
+
+tonumber:
+    0 ; peek # if               -- str res len
+        1 for
+            10 *                -- str res
+            % 1 +               -- res str
+            % ; peek $f and +   -- str res
+        next
+    then
+        .                       -- str res
+    end
+    % .                         -- res
+return
+
+[nl: lf print]
+lf: (1 13)

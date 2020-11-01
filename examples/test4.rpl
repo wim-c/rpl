@@ -1,0 +1,12 @@
+[max: 25]
+[min:  5]
+
+max min for
+    "ITERATION " print iter @ str print ": " print
+    fn str print lf print
+    iter @ 1 + iter !
+next
+stop
+
+iter: [1]
+lf: (1 13)

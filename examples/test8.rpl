@@ -1,0 +1,15 @@
+
+showchar:
+    -- used for random lo byte as character
+    rnd
+
+    -- determine random screen location
+    rnd $7fff and 1000 \ screen +
+
+    -- poke random character into random location
+    poke
+
+    -- and repeat forever
+    showchar goto
+
+[screen: $400]

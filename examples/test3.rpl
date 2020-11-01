@@ -1,0 +1,32 @@
+--
+-- a simple test program
+--
+
+lineptr start 
+
+loop:
+    ; @ -- (lineptr linenumber nextlineptr)
+    if
+        -- nextlineptr not null (not at end of basic program)
+        % ; ;  -- (linenumber lineptr linenumber lineptr)
+
+        -- store the line number two bytes after lineptr
+        2 + !
+
+        -- fetch next lineptr and increment linenumber
+        @ % inc +  -- (nextlineptr nextlinenumber)
+        
+        -- continue with next line
+        loop goto
+    end
+    
+    -- end of basic program reached
+    stop
+
+--
+-- macros
+--
+
+[lineptr: $0801]  -- start of basic program
+[start:    1000]  -- initial line number
+[inc:        10]  -- line number increment

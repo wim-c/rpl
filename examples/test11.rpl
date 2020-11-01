@@ -1,0 +1,78 @@
+
+-- cursor to initial position
+show &
+
+-- flash cursor
+0 flash poke
+
+-- await move
+move goto
+
+update:
+    -- position cursor
+    show &
+
+move:
+    -- get char
+    get
+
+    -- show input or repeat if there is no input
+    # if # put & then . move goto end
+
+    -- move around
+    # HKEY = if . left goto end
+    # JKEY = if . down goto end
+    # KKEY = if . up goto end
+    # LKEY = if . right goto end
+
+    -- ignore input
+    . move goto
+
+left:
+    x @ # if 1 - x ! then . end
+    update goto
+
+down:
+    y @ # 24 < if 1 + y ! then . end
+    update goto
+
+up:
+    y @ # if 1 - y ! then . end
+    update goto
+
+right:
+    x @ # 39 < if 1 + x ! then . end
+    update goto
+
+put:
+    A poke chrout sys return
+
+-- position cursor
+show:
+    -- line in X
+    y @ X poke
+
+    -- column in Y
+    x @ Y poke
+
+    -- clear carry
+    0 P poke
+
+    -- set cursor
+    plot sys
+    return
+
+[HKEY: $48]
+[JKEY: $4a]
+[KKEY: $4b]
+[LKEY: $4c]
+    
+[flash: $cc]
+[plot: $fff0]
+[chrout: $ffd2]
+[A: $30c]
+[X: $30d]
+[Y: $30e]
+[P: $30f]
+
+x: [0] y: [0]

@@ -1,0 +1,9 @@
+
+"SOME RANDOM NUMBERS:" printnl
+10 1 for
+    rnd str printnl
+next
+stop
+
+[printnl: print nl print]
+nl: (1 13)

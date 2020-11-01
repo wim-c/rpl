@@ -1,0 +1,40 @@
+
+start:
+"FIRST NUMBER: " print input tonumber &
+"SECOND NUMBER: " nlprint input tonumber &
+"NUMBERS: " nlprint ; str print ", " print # str printnl
+; ; < if "LESS" printnl end
+; ; <= if "LESS OR EQUAL" printnl end
+; ; = if "EQUAL" printnl end
+; ; <> if "NOT EQUAL" printnl end
+; ; > if "GREATER THAN" printnl end
+>= if "GREATER EQUAL" printnl end
+
+"AGAIN?" print again: get # if then . again goto end
+nl 'Y' peek = if start goto end
+stop
+
+tonumber:
+    # peek 0 = if
+        . 0
+    then
+        # 1 + # peek '-' peek <> if
+            . topos goto
+        end
+        '0' peek % poke topos & 0 % -
+    end
+return
+    
+topos:
+    0 ; peek 1 for
+        10 *                -- str res
+        % 1 +               -- res str
+        % ; peek $f and +   -- str res
+    next
+    % .
+return
+
+[nl: lf print]
+[printnl: print nl]
+[nlprint: nl print]
+lf: (1 13)

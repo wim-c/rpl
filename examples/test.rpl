@@ -1,0 +1,17 @@
+"DO YOU WANT INSTRUCTIONS? " getanswer &
+if "WELL, THERE AREN'T ANY." printnl end
+"IS YOUR NAME FRED? " getanswer &
+not if "THEN GO AWAY." printnl end
+stop
+
+[printnl: print nl print]
+nl: (1 13)
+
+getanswer: print
+waitforanswer: get # if then . waitforanswer goto end
+confirm 1 + ; poke confirm print
+# 'Y' peek = if . -1 return end
+# 'N' peek = if . 0 return end
+. "PLEASE HIT EITHER 'Y' OR 'N': " print
+waitforanswer goto
+confirm: (2 0 13)
