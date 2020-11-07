@@ -39,9 +39,11 @@ jmpi = $6c
 !address stop_scan = $91
 stop_value = $7f
 
-; Location of the two byte random state used by the rnd command.  This is part
-; of the location that is used for the random number generator in BASIC.
-!address rnd_state = $8e
+; Location of the three bytes random state used by the rnd command.  This is
+; part of the location that is used for the random number generator in BASIC.
+!address rnd_0 = $8f
+!address rnd_1 = $8e
+!address rnd_2 = $8d
 
 ; Hardware stack page.
 !address st = $100
@@ -78,9 +80,10 @@ stop_value = $7f
 
             ; Seed the random state (from the jiffy clock).
             jsr RDTIM       ; Get time in y;x;acc.
-            and #1          ; Make sure that the seed is not zero.
-            sta rnd_state   ; Use two least significant bytes as seed.
-            stx rnd_state+1
+            ora #1          ; Make sure that the seed is not zero.
+            sta rnd_0
+            stx rnd_1
+            sty rnd_2
 
             ; Prepare pc.
             pla             ; Get lo byte of return address.
@@ -1064,33 +1067,36 @@ exec_return     pla             ; Pull lo byte in y register.
                 jmp decodenext  ; Decode next opcode.
 
 ;
-; Generate a pseudo random number in the range -32767 to 32767 using
-; Marsaglia's xorshift PRNG algorithm.  If v is the previous (or seed) value
-; then the next value is computed by the sequence
+; Generate a pseudo random word using the sequence of steps below to mix a
+; three byte random state.  This will loop through all possible non-zero states
+; in a random (for our purpose) order.  The five steps are:
 ;
-;   v = v XOR (v << 7)
-;   v = v XOR (v >> 9)
-;   v = v XOR (v << 8)
+;   Step 1:  rnd_1 <- rnd_1 EOR ASL(rnd_0)
+;   Step 2:  rnd_2 <- rnd_2 EOR ROL(rnd_1)
+;   Step 3:  rnd_0 <- rnd_0 EOR rnd_2
+;   Step 4:  rnd_2 <- rnd_2 EOR ROR(rnd_1)
+;   Step 5:  rnd_1 <- rnd_1 EOR rnd_2
 ;
-exec_rnd        lda rnd_state+1 ; Get bit 0 of hi byte into the carry.
-                lsr
-                lda rnd_state   ; Roll right into lo byte.
+
+exec_rnd        lda rnd_0       ; Step 1.
+                asl
+                eor rnd_1
+                sta rnd_1
+                rol             ; Step 2.
+                eor rnd_2
+                sta rnd_2
+                eor rnd_0       ; Step 3.
+                sta rnd_0
+                eor #$80        ; Flip bit7 and push as hi byte of result.
+                sta ps,x        ; This makes the value $8000 occur slightly
+                dex             ; less than all others.
+                lda rnd_1       ; step 4.
                 ror
-                eor rnd_state+1 ; Compute hi byte of v XOR (v << 7).
-                sta rnd_state+1
-                ror             ; Roll bit 0 of lo byte into hi byte.
-                eor rnd_state   ; Compute lo byte of v XOR (v << 7) and at the
-                sta rnd_state   ; same time v XOR (v >> 9).
-                eor rnd_state+1 ; Compute v XOR (v << 8).
-                sta rnd_state+1
-                eor #$80        ; Flip bit 15 of the new random number.  Since
-                                ; Marsaglia's algorithm will never produce 0
-                                ; this makes sure that the random result ranges
-                                ; from -32767 to 32767.
-                sta ps,x        ; Push the random number to tos.
-                dex
-                lda rnd_state
-                sta ps,x
+                eor rnd_2
+                sta rnd_2
+                eor rnd_1       ; step 5.
+                sta rnd_1
+                sta ps,x        ; Push as lo byte of result.
                 dex
                 jmp decode      ; Decode next opcode.
 
