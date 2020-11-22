@@ -1,0 +1,104 @@
+
+-- A card dealing program
+
+-- push all card strings onto the stack
+pushcards &
+
+-- number of cards still to draw
+52 
+
+draw:
+    -- get random index between 0 and number of cards
+    rnd $7fff and ; \
+        
+    -- fetch and remove card from stack 
+    2 + $
+
+    -- print it
+    print " " print
+    
+    -- draw next card
+    1 - # if draw goto end
+    . stop
+
+pushcards:
+    -- push first string
+    cards
+
+nextcard:
+    -- push the string length
+    # peek
+
+    -- check if the string is empty
+    # if
+        -- if not then push the next string and continue.
+        1 + ; +
+        nextcard goto
+    end
+
+    -- pop the empty string and its length and return.
+    . . return
+
+[spades: $61]
+[hearts: $73]
+[clubs: $78]
+[diamonds: $7a]
+
+cards: (
+    2 spades '2'
+    2 spades '3'
+    2 spades '4'
+    2 spades '5'
+    2 spades '6'
+    2 spades '7'
+    2 spades '8'
+    2 spades '9'
+    3 spades '10'
+    2 spades 'J'
+    2 spades 'Q'
+    2 spades 'K'
+    2 spades 'A'
+
+    2 hearts '2'
+    2 hearts '3'
+    2 hearts '4'
+    2 hearts '5'
+    2 hearts '6'
+    2 hearts '7'
+    2 hearts '8'
+    2 hearts '9'
+    3 hearts '10'
+    2 hearts 'J'
+    2 hearts 'Q'
+    2 hearts 'K'
+    2 hearts 'A'
+
+    2 clubs '2'
+    2 clubs '3'
+    2 clubs '4'
+    2 clubs '5'
+    2 clubs '6'
+    2 clubs '7'
+    2 clubs '8'
+    2 clubs '9'
+    3 clubs '10'
+    2 clubs 'J'
+    2 clubs 'Q'
+    2 clubs 'K'
+    2 clubs 'A'
+
+    2 diamonds '2'
+    2 diamonds '3'
+    2 diamonds '4'
+    2 diamonds '5'
+    2 diamonds '6'
+    2 diamonds '7'
+    2 diamonds '8'
+    2 diamonds '9'
+    3 diamonds '10'
+    2 diamonds 'J'
+    2 diamonds 'Q'
+    2 diamonds 'K'
+    2 diamonds 'A'
+    0
+)
