@@ -1147,52 +1147,132 @@ exec_store      inx             ; Pop tos and store into ea.
                 ldy savey       ; Restore y register.
                 jmp decode      ; Decode next opcode.
 
+
+;
+; Helper routine to output a non-zero binary coded decimal byte to the buffer
+; starting at INBUF+1.  Skip possible leading zero in hi nibble.  Byte to write
+; in a, string length in y.  Clobbers x.
+;
+wrt_bcd         tax             ; Save a to x.
+                lsr             ; Shift hi nibble down.
+                lsr
+                lsr
+                lsr
+                bne +           ; Check for leading zero.
+                cpy #0
+                beq ++          ; Branch to skip leading zero.
++               ora #'0'        ; Convert to ASCII and add to output.
+                sta INBUF+1,y
+                iny
+++              txa             ; Restore a from x.
+wrt_bcd_lo      and #$f         ; Mask out hi nibble.
+                ora #'0'        ; Convert to ASCII.
+                sta INBUF+1,y   ; Store in buffer.
+                iny             ; Increment buffer offset.
+wrt_done        rts
+
+
 ;
 ; Convert signed word in tos to string.  Drop tos and push address of result.
 ;
-exec_str        lda #10         ; Use 10 as denominator.
+exec_str        lda #0          ; Clear binary coded decimal value.
+                sta lw
+                sta lw+1
+                sta hw
+                inx             ; Copy tos to ea.
+                lda pslo,x
+                sta ea
+                lda pshi,x
+                sta ea+1
+                bpl +           ; Branch if tos is non-negative.
+                sec             ; Negate ea.
+                lda #0
+                sbc ea
                 sta ea
                 lda #0
+                sbc ea+1
                 sta ea+1
-                jsr divmod_tos  ; Divide abs(tos) by 10.  Drops tos.
-                sty pc          ; Save y register.  Cannot use savey for this
-                                ; since the divmod routine uses that too.
-                ldy #6          ; Prepare offset into output buffer.
-                bne +           ; Skip first division inside loop.
++               sty savey       ; Save y register
+                sed             ; Enable decimal arithmetic.
 
-                ; Digit extraction loop.
--               jsr divmod_only ; Divide quotient by 10.
-+               lda hw          ; Get remainder and store as digit.  Digits are
-                ora #'0'        ; added right to left.
-                sta INBUF,y
-                dey
-                lda lw          ; Repeat until quotient is zero.  This will
-                ora lw+1        ; happen after at most five digits.
-                bne -
+                ; Check if number is zero or at most $ff.
+                bne +           ; Branch if hi byte is non-zero.
+                lda ea
+                bne ++          ; Branch if lo byte is non-zero.
+                cld             ; Otherwise skip conversion and output '0'.
+                lda #'0'
+                sta INBUF+1
+                ldy #1          ; String length in y.
+                bne push_str    ; Branch always.
 
-                ; Finish up
-                lda pshi,x      ; Check sign of tos.
-                bpl +           ; Branch if positive.
-                lda #'-'        ; Add minus sign to output buffer.
-                sta INBUF,y
+                ; Loop over bit15 - bit8.  The maximal decimal value that can
+                ; be reached is 128.  The third decimal digit is determined by
+                ; the last iteration only.
++               ldy #8
+-               asl ea+1        ; Shift next highest bit into the carry.
+                lda lw          ; Double the decimal value and add carry.
+                adc lw
+                sta lw
                 dey
-+               tya             ; Store length of string (6-y).
-                eor #$ff
-                sec
-                adc #6
-                sta INBUF,y
-                tya             ; Place address of result in tos.
-                clc
-                adc #<INBUF
+                bne -           ; Repeat for all bits of hi byte.
+                rol lw+1        ; Carry holds the third decimal digit.
+
+                ; Loop over bit7 - bit1.  The maximal decimal value that can be
+                ; reached is 16384.  The fifth decimal digit is determined by
+                ; the last iteration only.
+++              ldy #7
+-               asl ea          ; Shift the next highest bit into the carry.
+                lda lw          ; Double the decimal value and add carry.
+                adc lw
+                sta lw
+                lda lw+1
+                adc lw+1
+                sta lw+1
+                dey
+                bne -           ; Repeat for seven most significant bits.
+                rol hw          ; Carry holds the fifth decimal digit.
+
+                ; Handle bit0
+                asl ea
+                lda lw
+                adc lw
+                sta lw
+                lda lw+1
+                adc lw+1
+                sta lw+1
+                lda hw
+                adc hw
+                sta hw
+
+                ; Binary coded decimal now in hw;lw
+                cld             ; Disable decimal arithmetic.
+                ldy #0          ; Initialize String length counter.
+                lda pshi,x      ; Output sign if negative.
+                bpl +
+                lda #'-'
+                sta INBUF+1
+                iny
++               stx savex       ; Save x register.
+                lda hw          ; Output decimal digits but skip leading 0's.
+                bne outdig5
+                lda lw+1
+                bne outdig34
+                beq outdig12    ; Branch alwys.
+outdig5         jsr wrt_bcd_lo
+                lda lw+1
+outdig34        jsr wrt_bcd
+outdig12        lda lw
+                jsr wrt_bcd
+                ldx savex       ; Restore x register.
+push_str        sty INBUF       ; Set string length.
+                ldy savey       ; Restore y register.
+                lda #<INBUF     ; Push address of string.
                 sta pslo,x
-                lda #0
-                adc #>INBUF
+                lda #>INBUF
                 sta pshi,x
-                ldy pc          ; Restore y register and pc.
-                lda #0
-                sta pc
                 dex
-                jmp decode      ; Deocde next opcode.
+                jmp decode      ; Decode next opcode.
+
 ;
 ; Drop tos and subtract it from nos.
 ;

@@ -1,7 +1,7 @@
 
 "SOME RANDOM NUMBERS:" printnl
 10 1 for
-    rnd str printnl
+    rnd # chr print " " print str printnl
 next
 stop
 

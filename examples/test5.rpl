@@ -3,9 +3,9 @@ start:
 "FIRST NUMBER: " print input tonumber &
 nl "SECOND NUMBER: " print input tonumber &
 ; ; *
-nl "PROD " print chr print
-; ; / " QUO " print chr print
-\ " MOD " print chr print
+nl "PROD " print str print
+; ; / " QUO " print str print
+\ " MOD " print str print
 
 nl "AGAIN?" print again: get # if then . again goto end
 nl 'Y' peek = if start goto end
