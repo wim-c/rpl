@@ -351,6 +351,12 @@ local function file_writer(out)
     end
 end
 
+local function escape(str)
+    return (str:gsub("[^ -\127\160-\255]", function(m)
+        return '\\' .. m:byte()
+    end))
+end
+
 local function simple_writer(pc, instruction, bytes)
     if not instruction then
         return
@@ -373,9 +379,9 @@ local function simple_writer(pc, instruction, bytes)
     elseif instruction.type == ins.FLOAT then
         value = ('float %f'):format(instruction.value)
     elseif instruction.type == ins.STRING then
-        value = ('string \'%s\''):format(instruction.value)
+        value = ('string "%s"'):format(escape(instruction.value))
     elseif instruction.type == ins.BYTES then
-        value = ('bytes \'%s\''):format(instruction.value)
+        value = ('bytes \'%s\''):format(escape(instruction.value))
     elseif instruction.type == ins.PROLOG then
         value = ('start interpreter at $%04X'):format(instruction.value)
     elseif instruction.const then

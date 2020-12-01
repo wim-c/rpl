@@ -120,7 +120,8 @@ local function lex(txt)
         if scan('^%-%-[^\n]*') then
             -- ignore comments
         elseif scan('^"[^\n"]*"') then
-            add_token(token.STRING, match(2, -2))
+            local str = (match(2, -2):gsub("\\(%d%d?%d?)", string.char))
+            add_token(token.STRING, str)
         elseif scan("^'[^\n']*'") then
             add_token(token.BYTES, match(2, -2))
         elseif scan('^[%[%]():]') then
