@@ -40,6 +40,21 @@ local function compile(name, org, interpreter, out)
     phase3.emit(p, org, interpreter, writer)
 end
 
-return {
-    compile = compile,
-}
+if ... == "rpl" then
+    -- Compiler assumed to be loaded with a require call.  Return the compile
+    -- function as the only member in the loaded package.
+    return {
+        compile = compile,
+    }
+else
+    -- Compiler called from command line, so run it immediately.
+    local inf, org, rpl, outf = ...
+    org = tonumber(org)
+    rpl = tonumber(rpl)
+    if org and rpl then
+        compile(inf, org, rpl, outf)
+    else
+        print("Usage: rpl.lua infile address-of-program address-of-interpreter [outfile]")
+    end
+end
+
