@@ -1,17 +1,31 @@
 "DO YOU WANT INSTRUCTIONS? " getanswer &
-if "WELL, THERE AREN'T ANY." printnl end
+if "WELL, THERE AREN'T ANY.\13" print end
 "IS YOUR NAME FRED? " getanswer &
-not if "THEN GO AWAY." printnl end
+if then "THEN GO AWAY.\13" print end
 stop
 
-[printnl: print nl print]
-nl: (1 13)
+getanswer:
+    -- Display message.
+    print
 
-getanswer: print
-waitforanswer: get # if then . waitforanswer goto end
-confirm 1 + ; poke confirm print
-# 'Y' peek = if . -1 return end
-# 'N' peek = if . 0 return end
-. "PLEASE HIT EITHER 'Y' OR 'N': " print
-waitforanswer goto
-confirm: (2 0 13)
+waitforanswer:
+    -- Wait for key press.
+    get # if then . waitforanswer goto end
+
+    -- Print pressed key and newline.
+    # confirm 1 + poke confirm print
+
+    -- Return true if 'Y' or false if 'N'
+    # Y = if . -1 return end
+    # N = if . 0 return end
+
+    -- Ask for correct input again.
+    . "PLEASE HIT EITHER 'Y' OR 'N': " print
+    waitforanswer goto
+
+-- String used to print pressed key.  The ? will be replaced by the input.
+confirm: ["?\13"]
+
+-- Macros for the PETSCII values of 'Y' and 'N'.
+[Y: $59]
+[N: $4e]
