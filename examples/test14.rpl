@@ -1,0 +1,89 @@
+
+--
+-- Adapted from benchmark program in Creative Computing Magazine, November
+-- 1982 issue, including several bug fixes and some restructuring.  Original
+-- code written by Gregory Yob.
+--
+
+-- Push start jiffy clock values.
+clock &
+
+-- Perform benchmark.
+doall &
+
+-- Push stop jiffy clock values.
+clock &
+
+-- Clear the screen.
+clear &
+
+-- Print stop and start clock, both with their least significant byte first.
+6 1 for
+    str print " " print
+next
+stop
+
+-- Push three jiffy clock bytes, most significant first.
+clock:
+    141 peek 142 peek 143 peek return
+
+-- Clear the screen.
+clear:
+    32768 # 999 + % for
+        -- Poke space to position.
+        32 fn poke
+    next
+    return
+
+-- Perform the benchmark.
+doall:
+    255 0 for
+        -- Push start character and fill four pages.
+        fn doscreen &
+    next
+    return
+
+-- Fill screen starting from given character.
+-- (char -- )
+doscreen:
+    -- Initialize page address.
+    -- (char -- char address)
+    32768
+    
+    -- Repeat for four pages.
+    4 1 for
+        -- Duplicate nos and tos.
+        -- (char address -- char address char address)
+        ; ;
+        
+        -- Process one page of the benchmark.
+        -- (char address char address -- char address)
+        doapage &
+
+        -- Advance address by one page.
+        -- (char address -- char address)
+        256 +
+    next
+    
+    -- Drop char and address and return.
+    -- (char address -- )
+    . . return
+
+-- Fill a single page with a character.
+-- (char address -- )
+doapage:
+    -- Loop over page.
+    -- (char address -- char)
+    # 255 + % for
+        -- Poke character at address.
+        -- (char -- char)
+        # fn poke
+
+        -- Prepare next character to show.
+        -- (char -- char)
+        1 +
+    next 
+    
+    -- Drop character and return.
+    -- (char -- )
+    . return

@@ -1,0 +1,94 @@
+
+--
+-- Adapted from benchmark program in Creative Computing Magazine, November
+-- 1982 issue.  Original code written by Gregory Yob.
+--
+
+-- Push start jiffy clock values.
+clock &
+
+-- Perform benchmark.
+doall &
+
+-- Push stop jiffy clock values.
+clock &
+
+-- Clear the screen.
+clear &
+
+-- Print stop and start clock, both with their least significant byte first.
+str print " " print
+str print " " print
+str print " " print
+str print " " print
+str print " " print
+str print " " print
+stop
+
+-- Push three jiffy clock bytes, most significant first.
+clock:
+    141 peek 142 peek 143 peek return
+
+-- Clear the screen.
+clear:
+    -- Setup space character.
+    -- ( -- spc)
+    32
+    
+    -- Loop over 1025 (!) bytes starting at screen RAM origin.
+    32768 # 1024 + % for
+        -- Poke space to position.
+        # fn poke
+    next
+    
+    -- Pop space character and return
+    -- (spc -- )
+    . return
+
+-- Perform the benchmark.
+doall:
+    255 0 for fn doscreen & . next return
+
+-- Fill screen with the tos character.  Does one page too many!
+-- (char -- char)
+doscreen:
+    -- Initialize page address.
+    -- (char -- char address)
+    32768 256 - 
+    
+    -- Repeat five (!) times.
+    4 0 for
+        -- Add one page to address.
+        -- (char address -- char address)
+        256 +
+        
+        -- Duplicate nos and tos.
+        -- (char address -- char address char address)
+        ; ;
+        
+        -- Process one page of the benchmark.
+        doapage &
+    next
+    
+    -- Drop address and return.
+    -- (char address -- char)
+    . return
+
+-- Fill a single page with a character.
+-- (char address -- )
+doapage:
+    -- Loop over page (one byte too many).
+    -- (char address -- char)
+    # 256 + % for
+        -- Increment character to show.
+        -- (char -- char)
+        1 +
+        
+        -- Poke character at address.
+        -- (char -- char)
+        # fn poke
+    next 
+    
+    -- Drop character and return.
+    -- (char -- )
+    . return
