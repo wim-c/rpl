@@ -27,11 +27,6 @@ target_pet2
 ; Alias for the jmp indirect instruction.
 jmpi = $6c
 
-; Initial parameter stack pointer.  Note that the parameter stack is split into
-; two sections for lo and hi bytes of each word, and each section is half a
-; page large..
-pstop = $7f
-
 ; Hardware stack page.
 !address st = $100
 
