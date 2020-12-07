@@ -1,9 +1,13 @@
 
+--
+-- Draw ramdom characters on the screen.  PET version.
+--
+
 showchar:
-    -- used for random lo byte as character
+    -- Low byte of random value will be screen character value.
     rnd
 
-    -- determine random screen location
+    -- Determine random screen position.
     rnd $7fff and 1000 \ screen +
 
     -- poke random character into random location
@@ -12,4 +16,5 @@ showchar:
     -- and repeat forever
     showchar goto
 
-[screen: $400]
+-- Start of 1000 bytes of screen RAM.
+let screen: $8000 end
