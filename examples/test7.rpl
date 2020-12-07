@@ -5,5 +5,5 @@
 next
 stop
 
-[printnl: print nl print]
+let printnl: print nl print end
 nl: (1 13)

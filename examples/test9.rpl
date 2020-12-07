@@ -18,4 +18,4 @@ then
     . key goto
 end
 
-[screen: $400]
+let screen: $400 end

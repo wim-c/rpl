@@ -37,15 +37,15 @@ tonumber:
 nl: (1 13)
 
 -- Convenience macro to print string and newline.
-[printnl: print nl print]
+let printnl: print nl print end
 
 -- Kernal entries to set and read the jiffy clock in y;x;acc.
-[settim: $ffdb]
-[rdtim: $ffde]
+let settim: $ffdb end
+let rdtim: $ffde end
 
 -- Locations where SYS gets and stores the registers and status flags.
-[registers: $30c]
-[A: registers]
-[X: registers 1 +]
-[Y: registers 2 +]
-[P: registers 3 +]
+let registers: $30c end
+let A: registers end
+let X: registers 1 + end
+let Y: registers 2 + end
+let P: registers 3 + end

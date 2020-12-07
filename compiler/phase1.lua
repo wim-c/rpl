@@ -126,24 +126,19 @@ local function compile(tokens)
                 })
         end
 
-        local function parse_data_or_macro()
-            local function state_data_or_macro(data_program)
+        local function parse_data()
+            local function state_data(data_program)
                 if token.type ~= tok.DELIMITER or token.value ~= ']' then
                     return add_error_missing_delimiter()
                 end
-                if data_program[1] and data_program[1].type == ins.LABEL then
-                    local label = table.remove(data_program, 1)
-                    add_macro(label, data_program)
-                else
-                    add_instruction {
-                        type = ins.DATAWORDS,
-                        value = data_program,
-                    }
-                end
+                add_instruction {
+                    type = ins.DATAWORDS,
+                    value = data_program,
+                }
                 pop_state()
             end
 
-            push_state(state_data_or_macro)
+            push_state(state_data)
             parse_expression()
         end
 
@@ -165,7 +160,7 @@ local function compile(tokens)
 
         local function parse_delimiter()
             if token.value == '[' then
-                return parse_data_or_macro()
+                return parse_data()
             elseif token.value == '(' then
                 return parse_bytes()
             elseif token.value ~= ':' then
@@ -205,9 +200,27 @@ local function compile(tokens)
             parse_expression()
         end
 
+        local function parse_macro()
+            local function state_macro(data_program)
+                if token.type ~= tok.IDENT or token.value ~= 'end' then
+                    return add_error_missing_end()
+                elseif not data_program[1] or data_program[1].type ~= ins.LABEL then
+                    return add_error_missing_label()
+                end
+                local label = table.remove(data_program, 1)
+                add_macro(label, data_program)
+                pop_state()
+            end
+
+            push_state(state_macro)
+            parse_expression()
+        end
+        
         local function parse_ident()
             if token.value == 'if' then
                 parse_if()
+            elseif token.value == 'let' then
+                parse_macro()
             elseif ops[token.value] then
                 add_instruction {
                     type = ins.OP,

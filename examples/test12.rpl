@@ -39,10 +39,10 @@ nextcard:
     -- pop the empty string and its length and return.
     . . return
 
-[spades: $61]
-[hearts: $73]
-[clubs: $78]
-[diamonds: $7a]
+let spades: $61 end
+let hearts: $73 end
+let clubs: $78 end
+let diamonds: $7a end
 
 cards: (
     2 spades '2'

@@ -1,5 +1,5 @@
-[max: 25]
-[min:  5]
+let max: 25 end
+let min:  5 end
 
 max min for
     "ITERATION " print iter @ str print ": " print

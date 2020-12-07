@@ -27,5 +27,5 @@ waitforanswer:
 confirm: ["?\13"]
 
 -- Macros for the PETSCII values of 'Y' and 'N'.
-[Y: $59]
-[N: $4e]
+let Y: $59 end
+let N: $4e end

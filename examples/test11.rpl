@@ -62,17 +62,17 @@ show:
     plot sys
     return
 
-[HKEY: $48]
-[JKEY: $4a]
-[KKEY: $4b]
-[LKEY: $4c]
+let HKEY: $48 end
+let JKEY: $4a end
+let KKEY: $4b end
+let LKEY: $4c end
     
-[flash: $cc]
-[plot: $fff0]
-[chrout: $ffd2]
-[A: $30c]
-[X: $30d]
-[Y: $30e]
-[P: $30f]
+let flash: $cc end
+let plot: $fff0 end
+let chrout: $ffd2 end
+let A: $30c end
+let X: $30d end
+let Y: $30e end
+let P: $30f end
 
 x: [0] y: [0]

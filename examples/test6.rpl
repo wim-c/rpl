@@ -34,7 +34,7 @@ topos:
     % .
 return
 
-[nl: lf print]
-[printnl: print nl]
-[nlprint: nl print]
+let nl: lf print end
+let printnl: print nl end
+let nlprint: nl print end
 lf: (1 13)

@@ -27,6 +27,6 @@ loop:
 -- macros
 --
 
-[lineptr: $0801]  -- start of basic program
-[start:    1000]  -- initial line number
-[inc:        10]  -- line number increment
+let lineptr: $0801 end  -- start of basic program
+let start:    1000 end  -- initial line number
+let inc:        10 end  -- line number increment
