@@ -1,0 +1,134 @@
+# command types.
+command  :>  ! # $ % & * + - . / ; < <= <> = > >= @ \ ^
+command  :>  and beq bne chr$ clr fn for get goto input int new
+command  :>  next not or peek poke print return rnd stop str$ sys
+
+# unary operators.
+unop   :>  int not
+
+# binary operators.
+binop  :>  * + - / < <= <> = > >= \ and or
+
+# constant terms.
+const  :>  expr word ref
+
+# symmetric binary operators.
+symmetric  :>  * + <> = and or
+
+# commands that divert the control flow.
+jmp  :>  goto return stop
+
+# compile time unary operators
+unop_int  :  word int
+unop_not  :  word not
+
+# compile time binary operators
+binop_mul  :  word word *
+binop_add  :  word word +
+binop_sub  :  word word -
+binop_div  :  word word /
+binop_lt   :  word word <
+binop_le   :  word word <=
+binop_ne   :  word word <>
+binop_eq   :  word word =
+binop_gt   :  word word >
+binop_ge   :  word word >=
+binop_mod  :  word word \
+binop_and  :  word word and
+binop_or   :  word word or
+
+# optimize if word is 0 or -1
+and_false?  :  word const and
+and_false?  :  const word and
+
+# optimize if word is 0 or -1
+or_false?  :  word const or
+or_false?  :  const word or
+
+# respond to pushing some specific terms
+push_if       :  if
+push_if_word  :  word if
+push_label    :  label
+push_macro    :  macro
+push_symbol   :  symbol
+
+# expression extensions.  these all reduce to a single expr.
+unop_expr         :  expr unop
+binop_expr_expr   :  expr expr binop
+binop_expr_const  :  expr const binop
+
+# epression constructors.  these all construct a single new expr.
+unop_const         :  const unop
+binop_const_expr   :  const expr binop
+binop_const_const  :  const const binop
+
+# cases where dup pushes a const.
+dup_word   :  word #
+dup_ref    :  ref #
+dup_expr   :  expr #
+
+# check compile time rotate
+rot_word?  :  word $
+
+# swap constants
+swap_const  :  const const %
+
+# drop a constant.
+drop_const  :  const .
+
+# case where over pushes a const.
+over_word  :  word const ;
+over_ref   :  ref const ;
+over_expr  :  expr const ;
+
+# check compile time pick
+pick_word?  :  word ^
+
+# check for some special cases of binary operators (e.g. 1 mul)
+mul_word?  :  word *
+add_word?  :  word +
+sub_word?  :  word -
+div_word?  :  word /
+and_word?  :  word and
+or_word?   :  word or
+
+# simplify negation of compare operators
+lt_not   :  < not
+le_not   :  <= not
+eq_not   :  = not
+neq_not  :  <> not
+ge_not   :  >= not
+gt_not   :  > not
+
+# swap compare
+lt_swap  :  % <
+le_swap  :  % <=
+ge_swap  :  % >=
+gt_swap  :  % >
+
+# simplify symmetric operators.
+symmetric_swap  :  % symmetric
+
+# simplify involutions.
+cancel_two  :  not not
+cancel_two  :  int int
+cancel_two  :  % %
+
+# use implied argument for call and goto
+implied?  :  const &
+implied?  :  const goto
+
+# simplify branch, call, or goto mark
+mark_jmp  :  mark jmp
+
+# merge marks
+mark_mark  :  mark mark
+
+# unreachable code
+jmp_skip  :  jmp command
+jmp_skip  :  jmp const
+jmp_skip  :  jmp if
+jmp_skip  :  jmp macro
+
+# replace beq over empty block by a bne
+beq_goto?  :  beq goto mark

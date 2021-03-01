@@ -62,6 +62,16 @@ class Command(Token):
     SWAP = '%'
     SYS = 'sys'
 
+    unary = (INT, NOT)
+    binary = (ADD, AND, DIV, EQ, GE, GT, LE, LT, MOD, MUL, NE, OR, SUB, SWAP)
+
+    def __init__(self, token, value=None):
+        super().__init__(token, value)
+        self.address = None
+
+    def __str__(self):
+        return self.value if self.address is None else f'{self.value} {self.address}'
+
 
 # The Constant token is an abstract base class for all syntax nodes that
 # evaluate to a constant word at compile time.
@@ -93,8 +103,11 @@ class Integer(Constant):
         if self.value >= 0x8000:
             self.value -= 0x10000
 
+    def __str__(self):
+        return f'{self.value}'
 
-class Symbol(Constant):
+
+class Symbol(Token):
     pass
 
 
