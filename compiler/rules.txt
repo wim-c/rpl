@@ -38,12 +38,12 @@ binop_and  :  word word and
 binop_or   :  word word or
 
 # optimize if word is 0 or -1
-and_false?  :  word const and
-and_false?  :  const word and
+and_word_const?  :  word const and
+and_const_word?  :  const word and
 
 # optimize if word is 0 or -1
-or_false?  :  word const or
-or_false?  :  const word or
+or_word_const?  :  word const or
+or_const_word?  :  const word or
 
 # respond to pushing some specific terms
 push_if       :  if
