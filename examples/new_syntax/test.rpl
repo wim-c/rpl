@@ -1,0 +1,50 @@
+
+REM Call main procedure and stop
+main &
+stop
+
+let main def
+    "DO YOU WANT INSTRUCTIONS? " getanswer & if
+        "WELL, THERE AREN'T ANY.\13" print
+    end
+
+    "IS YOUR NAME FRED? " getanswer & if then
+        "THEN GO AWAY.\13" print
+    end
+end
+
+let getanswer def
+    REM Display message.
+    print
+
+    REM Wait for key press.
+    waitforanswer:
+        get # if then
+            . waitforanswer goto
+        end
+
+    REM Print pressed key and newline.
+    # confirm 1 + poke confirm print
+
+    REM Return true if 'Y' or false if 'N'
+    # Y = if
+        REM Result is true if 'Y' is pressed.
+        . -1
+    then N = cont if
+        REM result is false if 'N' is pressed.
+        0
+    then
+        REM Otherwise ask for correct input again.
+        "PLEASE HIT EITHER 'Y' OR 'N': " print
+        waitforanswer goto
+    end
+end
+
+REM String used to print pressed key.  The ? will be replaced by the input.
+let confirm data "?\13" end
+
+REM Macros for the PETSCII values of 'Y' and 'N'.
+let
+    Y = $59,
+    N = $4e
+end

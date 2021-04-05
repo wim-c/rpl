@@ -1,0 +1,41 @@
+
+start &
+stop
+
+let start def
+    "FIRST NUMBER: " print input tonumber &
+    "\13SECOND NUMBER: " print input tonumber &
+
+    ; ; *
+    "\13PROD " print str print
+
+    ; ; /
+    " QUO " print str print
+
+    \
+    " MOD " print str print
+
+    "\13AGAIN?" print
+again:
+    get # if then
+        . again goto
+    end
+    "\13" print
+
+    'Y' peek = if
+        start goto
+    end
+end
+
+let tonumber def
+    0 ; peek # if               REM str res len
+        1 for
+            10 *                REM str res
+            % 1 +               REM res str
+            % ; peek $f and +   REM str res
+        next
+    then
+        .                       REM str res
+    end
+    % .                         REM res
+end

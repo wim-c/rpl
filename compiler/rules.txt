@@ -124,6 +124,9 @@ mark_jmp  :  mark jmp
 # merge marks
 mark_mark  :  mark mark
 
+# tail call
+call_return  :  & return
+
 # unreachable code
 jmp_skip  :  jmp command
 jmp_skip  :  jmp const

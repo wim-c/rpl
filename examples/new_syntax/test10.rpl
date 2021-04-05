@@ -1,0 +1,51 @@
+
+-- display jiffy clock
+showtime &
+
+-- input time values
+"Y: " print input tonumber & Y poke nl print
+"X: " print input tonumber & X poke nl print
+"A: " print input tonumber & A poke nl print
+
+-- set time
+settim sys
+
+-- and show time
+showtime &
+stop
+
+showtime:
+    -- read jiffy clock in y;x;acc
+    rdtim sys
+
+    -- display
+    "TIME: " print Y peek str print
+    ":" print X peek str print
+    ":" print A peek str print
+    "  (STATUS: " print P peek chr print ")" printnl
+return
+
+tonumber:
+    0 ; peek 1 for
+        10 *                -- str res
+        % 1 +               -- res str
+        % ; peek $f and +   -- str res
+    next
+    % . return
+
+-- Newline string.
+nl: (1 13)
+
+-- Convenience macro to print string and newline.
+let printnl: print nl print end
+
+-- Kernal entries to set and read the jiffy clock in y;x;acc.
+let settim: $ffdb end
+let rdtim: $ffde end
+
+-- Locations where SYS gets and stores the registers and status flags.
+let registers: $30c end
+let A: registers end
+let X: registers 1 + end
+let Y: registers 2 + end
+let P: registers 3 + end

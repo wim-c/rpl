@@ -8,8 +8,6 @@ class Parser(object):
     tokens = Lexer.tokens
 
     def __init__(self):
-        self.errors = []
-        self.scope = tokens.Scope()
         self.yacc = ply.yacc.yacc(module=self)
 
     def parse(self, lexer):
@@ -18,82 +16,47 @@ class Parser(object):
 
     # --- 
 
-    def p_statements_empty(self, p):
+    def p_statements(self, p):
         'statements : '
-        p[0] = self.scope.statements()
+        p[0] = []
 
-    def p_statements_simple_statement(self, p):
-        'statements : statements simple_statement'
+    def p_statements_statement(self, p):
+        'statements : statements statement'
         p[1].append(p[2])
-        p[0] = p[1]
-
-    def p_statements_literal(self, p):
-        'statements : statements literal'
-        p[1].literal(p[2])
-        p[0] = p[1]
-
-    def p_statements_definition(self, p):
-        'statements : statements block'
-        p[1].block(p[2])
-        p[0] = p[1]
-
-    def p_statements_label(self, p):
-        'statements : statements label'
-        p[1].label(p[2])
         p[0] = p[1]
 
     # ---
 
-    def p_simple_statement(self, p):
-        '''simple_statement : COMMAND
-                | INTEGER
+    def p_statement(self, p):
+        '''statement : COMMAND
+                | IS
+                | LITERAL
                 | SYMBOL
-                | if_statement'''
-        p[0] = p[1]
-
-    def p_literal_chars(self, p):
-        '''literal : CHARS
-                | FLOAT
-                | STRING'''
-        p[0] = p[1]
-
-    def p_block(self, p):
-        '''block : bytes
-                | macro
+                | bytes
+                | if
+                | label
+                | let
                 | proc
                 | words'''
         p[0] = p[1]
 
     # ---
 
-    def p_if_statement(self, p):
-        'if_statement : IF statements then_statements END'
-        p[0] = tokens.If(p[1], p[2], p[3])
+    def p_bytes(self, p):
+        'bytes : LPAREN statements RPAREN'
+        p[0] = tokens.Bytes(p[1], p[2])
 
-    def p_then_statements_empty(self, p):
-        'then_statements : '
-        p[0] = None
-
-    def p_then_statements_final(self, p):
-        'then_statements : THEN statements'
-        p[0] = p[2]
-
-    def p_then_statements(self, p):
-        'then_statements : THEN statements IF COLON statements then_statements'
-        p[2].append(tokens.If(p[3], p[5], p[6]))
-        p[0] = p[2]
+    def p_if(self, p):
+        'if : IF if_blocks END'
+        p[0] = tokens.If(p[1], p[2])
 
     def p_label(self, p):
         'label : SYMBOL COLON'
         p[0] = tokens.Label(p[1])
 
-    def p_bytes(self, p):
-        'bytes : LPAREN statements RPAREN'
-        p[0] = tokens.Bytes(p[1], p[2])
-
-    def p_macro(self, p):
-        'macro : LET statements END'
-        p[0] = tokens.Macro(p[1], p[2])
+    def p_let(self, p):
+        'let : LET let_blocks END'
+        p[0] = tokens.Let(p[1], p[2])
 
     def p_proc(self, p):
         'proc : DEF statements END'
@@ -102,3 +65,52 @@ class Parser(object):
     def p_words(self, p):
         'words : LBRACKET statements RBRACKET'
         p[0] = tokens.Words(p[1], p[2])
+
+    # ---
+
+    def p_if_blocks(self, p):
+        'if_blocks : if_statements'
+        p[0] = [p[1]]
+
+    def p_if_blocks_then(self, p):
+        'if_blocks : if_blocks THEN if_statements'
+        p[1].append(p[3])
+        p[0] = p[1]
+
+    def p_let_blocks(self, p):
+        'let_blocks : definition'
+        p[0] = [p[1]]
+
+    def p_let_blocks_comma(self, p):
+        'let_blocks : let_blocks COMMA definition'
+        p[1].append(p[3])
+        p[0] = p[1]
+
+    # ---
+
+    def p_if_statements(self, p):
+        'if_statements : statements'
+        p[0] = p[1]
+
+    def p_if_statements_cont_if(self, p):
+        'if_statements : if_statements CONT IF statements'
+        p[1].append(tokens.Command(p[2], 'contif'))
+        p[1].extend(p[4])
+        p[0] = p[1]
+
+    def p_definition_is(self, p):
+        'definition : SYMBOL IS statements'
+        p[0] = (p[1], tokens.Macro(p[2], p[3]))
+
+    def p_definition_data(self, p):
+        'definition : SYMBOL DATA statements'
+        p[0] = (p[1], tokens.Words(p[2], p[3]))
+
+    def p_definition_data_2(self, p):
+        '''definition : SYMBOL bytes
+                | SYMBOL words'''
+        p[0] = (p[1], p[2])
+
+    def p_definition_def(self, p):
+        'definition : SYMBOL DEF statements'
+        p[0] = (p[1], tokens.Proc(p[2], p[3]))

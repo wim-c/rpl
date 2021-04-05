@@ -1,0 +1,36 @@
+REM
+REM A simple test program to renumber BASIC line numbers
+REM
+
+main &
+stop
+
+let main def
+    REM Setup start line pointer and line number
+    lineptr start 
+
+loop:
+    REM Fetch next line pointer and check for null (end of program).
+    ; @ if
+        REM End not reached.
+        % ; ;  REM (linenumber lineptr linenumber lineptr)
+
+        REM store the line number two bytes after lineptr
+        2 + !
+
+        REM fetch next lineptr and increment linenumber
+        @ % inc +  REM (nextlineptr nextlinenumber)
+        
+        REM continue with next line
+        loop goto
+    end
+end
+
+REM
+REM macros
+REM
+let
+    lineptr = $0801,    REM start of basic program
+    start   = 1000,     REM initial line number
+    inc     = 10        REM line number increment
+end

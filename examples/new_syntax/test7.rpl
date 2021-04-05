@@ -1,0 +1,9 @@
+
+"SOME RANDOM NUMBERS:" printnl
+10 1 for
+    rnd # chr print " " print str printnl
+next
+stop
+
+let printnl: print nl print end
+nl: (1 13)
