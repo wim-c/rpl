@@ -1,6 +1,23 @@
+# Single node reductions
+push_bytes   :  bytes
+push_chars   :  chars
+push_contif  :  contif
+push_float   :  float
+push_if      :  if
+push_label   :  label
+push_let     :  let
+push_macro   :  macro
+push_proc    :  proc
+push_string  :  string
+push_symbol  :  symbol
+push_words   :  words
+
+# Pseudo node to close the current scope
+close_scope  :  end
+
 # command types.
 command  :>  ! # $ % & * + - . / ; < <= <> = > >= @ \ ^
-command  :>  and beq bne chr$ clr fn for get goto input int new
+command  :>  and beq bne chr$ clr contif fn for get goto input int new
 command  :>  next not or peek poke print return rnd stop str$ sys
 
 # unary operators.
@@ -45,12 +62,9 @@ and_const_word?  :  const word and
 or_word_const?  :  word const or
 or_const_word?  :  const word or
 
-# respond to pushing some specific terms
-push_if       :  if
-push_if_word  :  word if
-push_label    :  label
-push_macro    :  macro
-push_symbol   :  symbol
+# Short circuit conditional statements with a constant argument.
+push_if_word      :  word if
+push_contif_word  :  word contif
 
 # expression extensions.  these all reduce to a single expr.
 unop_expr         :  expr unop
@@ -123,6 +137,9 @@ mark_jmp  :  mark jmp
 
 # merge marks
 mark_mark  :  mark mark
+
+# check for zero offset goto
+goto_mark?  :  goto mark
 
 # tail call
 call_return  :  & return

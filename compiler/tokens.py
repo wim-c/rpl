@@ -121,7 +121,3 @@ class Proc(Node):
 
 class Words(Node):
     type = 'words'
-
-
-class Let(Node):
-    type = 'let'

@@ -94,7 +94,7 @@ class Parser(object):
 
     def p_if_statements_cont_if(self, p):
         'if_statements : if_statements CONT IF statements'
-        p[1].append(tokens.Command(p[2], 'contif'))
+        p[1].append(tokens.Command(p[2], tokens.Command.CONTIF))
         p[1].extend(p[4])
         p[0] = p[1]
 
