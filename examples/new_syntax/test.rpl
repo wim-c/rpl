@@ -1,7 +1,6 @@
 
 REM Call main procedure and stop
 main &
-stop
 
 let main def
     "DO YOU WANT INSTRUCTIONS? " getanswer & if
@@ -41,10 +40,8 @@ let getanswer def
 end
 
 REM String used to print pressed key.  The ? will be replaced by the input.
-let confirm data "?\13" end
+let confirm "?\13"
 
 REM Macros for the PETSCII values of 'Y' and 'N'.
-let
-    Y = $59,
-    N = $4e
-end
+let Y: $59 end
+let N: $4e end

@@ -11,7 +11,6 @@ import tokens
 syntax_tokens = {
     '(': 'LPAREN',
     ')': 'RPAREN',
-    ',': 'COMMA',
     ':': 'COLON',
     '[': 'LBRACKET',
     ']': 'RBRACKET',
@@ -39,11 +38,13 @@ commands = {
     'FN',
     'FOR',
     'GET',
+    'GOSUB',
     'GOTO',
     'INPUT',
     'INT',
     'NEXT',
     'NOT',
+    'ON',
     'OR',
     'PEEK'
     'POKE',
@@ -57,11 +58,13 @@ commands = {
     'fn',
     'for',
     'get',
+    'gosub',
     'goto',
     'input',
     'int',
     'next',
     'not',
+    'on',
     'or',
     'peek'
     'poke',
@@ -75,31 +78,38 @@ commands = {
 
 def make_token(t):
     t.type = syntax_tokens[t.value]
-    t.value = tokens.Token(t)
+    t.value = tokens.Token(t.type).from_token(t)
     return t
 
 
 def make_command(t):
-    t.type = 'IS' if t.value == '=' else 'COMMAND'
-    t.value = tokens.Command(t)
+    t.type = 'COMMAND'
+
+    if t.value == '?':
+        t.value = 'print'
+    elif t.value == '&':
+        t.value = 'gosub'
+
+    t.value = tokens.Command(t.value.lower()).from_token(t)
     return t
 
 
 def make_number(t):
-    t.type = 'LITERAL'
-    if any(char in t.value for char in '.eE'):
-        t.value = tokens.Float(t, float(t.value))
+    if re.search('[.eE]', t.value) is None:
+        t.type = 'INTEGER'
+        t.value = tokens.Integer(int(t.value)).from_token(t)
     else:
-        t.value = tokens.Integer(t, int(t.value))
+        t.type = 'LITERAL'
+        t.value = tokens.Float(float(t.value)).from_token(t)
     return t
 
 
 def make_hex_number(t):
-    t.type = 'LITERAL'
+    t.type = 'INTEGER'
     if t.value[0] == '-':
-        t.value = tokens.Integer(t, -int(t.value[2:], 16))
+        t.value = tokens.Integer(-int(t.value[2:], 16)).from_token(t)
     else:
-        t.value = tokens.Integer(t, int(t.value[1:], 16))
+        t.value = tokens.Integer(int(t.value[1:], 16)).from_token(t)
     return t
 
 
@@ -114,23 +124,22 @@ def make_text(t):
 
     t.type = 'LITERAL'
     if quote == '"':
-        t.value = tokens.String(t, text)
+        t.value = tokens.String(text).from_token(t)
     else:
-        t.value = tokens.Chars(t, text)
+        t.value = tokens.Chars(text).from_token(t)
     return t
 
 
 class Lexer(object):
     tokens = (
         'COLON',
-        'COMMA',
         'COMMAND',
         'CONT',
         'DATA',
         'DEF',
         'END',
         'IF',
-        'IS',
+        'INTEGER',
         'LBRACKET',
         'LET',
         'LITERAL',
@@ -183,7 +192,7 @@ class Lexer(object):
             return make_token(t)
         if t.value in commands:
             return make_command(t)
-        t.value = tokens.Symbol(t)
+        t.value = tokens.Symbol(t.value).from_token(t)
         return t
 
     def t_string(self, t):
@@ -207,7 +216,7 @@ class Lexer(object):
         return make_number(t)
 
     def t_command_op(self, t):
-        r'<[=>]?|>=?|[-!@#$%^&*+=;\\./]'
+        r'<[=>]?|>=?|[-!@#$%^&*+=;\\.?/]'
         return make_command(t)
 
     def t_syntax_char(self, t):

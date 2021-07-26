@@ -1,24 +1,26 @@
 # Single node reductions
-push_bytes   :  bytes
-push_chars   :  chars
-push_contif  :  contif
-push_float   :  float
-push_if      :  if
-push_label   :  label
-push_let     :  let
-push_macro   :  macro
-push_proc    :  proc
-push_string  :  string
-push_symbol  :  symbol
-push_words   :  words
+push_bytes       :  bytes
+push_contif      :  contif
+push_if          :  if
+push_label       :  label
+push_literal?    :  literal
+push_proc        :  proc
+push_program     :  program
+push_statements  :  statements
+push_symbol      :  symbol
+push_words       :  words
 
-# Pseudo node to close the current scope
-close_scope  :  end
+# Action nodes injected during compilation.  Used to properly close some
+# compilation scope.
+do_action  :  action
 
 # command types.
-command  :>  ! # $ % & * + - . / ; < <= <> = > >= @ \ ^
-command  :>  and beq bne chr$ clr contif fn for get goto input int new
-command  :>  next not or peek poke print return rnd stop str$ sys
+command  :>  ! # $ % * + - . / ; < <= <> = > >= @ \ ^
+command  :>  and beq bne chr$ clr contif fn for get gosub goto input int
+command  :>  new next not on or peek poke print return rnd stop str$ sys
+
+# literals that compile to a byte array
+literal  :>  chars float string
 
 # unary operators.
 unop   :>  int not
@@ -128,11 +130,11 @@ cancel_two  :  not not
 cancel_two  :  int int
 cancel_two  :  % %
 
-# use implied argument for call and goto
-implied?  :  const &
+# use implied argument for gosub and goto
+implied?  :  const gosub
 implied?  :  const goto
 
-# simplify branch, call, or goto mark
+# simplify branch, gosub, or goto mark
 mark_jmp  :  mark jmp
 
 # merge marks
@@ -142,13 +144,13 @@ mark_mark  :  mark mark
 goto_mark?  :  goto mark
 
 # tail call
-call_return  :  & return
+gosub_return  :  gosub return
 
 # unreachable code
 jmp_skip  :  jmp command
 jmp_skip  :  jmp const
 jmp_skip  :  jmp if
-jmp_skip  :  jmp macro
+jmp_skip  :  jmp statements
 
 # replace beq over empty block by a bne
 beq_goto?  :  beq goto mark
