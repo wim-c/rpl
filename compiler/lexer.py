@@ -66,7 +66,7 @@ commands = {
     'not',
     'on',
     'or',
-    'peek'
+    'peek',
     'poke',
     'print',
     'return',
@@ -152,7 +152,7 @@ class Lexer(object):
 
     t_ignore = ' \t\r'
 
-    def __init__(self, txt, name='input'):
+    def __init__(self, txt, *, name='input'):
         self.errors = []
         self.name = name
         self.lex = ply.lex.lex(module=self)

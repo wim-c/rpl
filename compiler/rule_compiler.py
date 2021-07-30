@@ -1,7 +1,7 @@
 
 import re
 
-class StateBuilder(object):
+class StateBuilder:
     def __init__(self):
         super().__init__()
         self.order = {}
@@ -193,9 +193,9 @@ class StateBuilder(object):
         return f'''
 # This file is generated.  Do not edit.
 
-class ParseStateMachine(object):
+class ParseStateMachine:
     transitions = (
-        {transitions}
+        {transitions},
     )
 
     order = {{

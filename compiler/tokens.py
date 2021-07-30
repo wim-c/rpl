@@ -20,6 +20,14 @@ class Node:
     def move_symbols(self, statements):
         pass
 
+    # Create a mark for this node as entry in a scope's symbol table.
+    def mark(self):
+        return Mark(self)
+
+    # Get a node value from a marked object in a scope's symbol table.
+    def resolve_mark(self, mark):
+        return Reference(mark)
+
     # Set the location data from a PLY token.
     def from_token(self, t):
         self.line = t.lineno
@@ -34,6 +42,14 @@ class Node:
 
 
 # Concrete node types in alphabetical order.
+
+class ByteData(Node):
+    type = 'byte_data'
+
+    def __init__(self, nodes):
+        super().__init__()
+        self.nodes = nodes
+
 
 class Bytes(Node):
     type = 'bytes'
@@ -103,9 +119,10 @@ class Command(Node):
     SWAP = '%'
     SYS = 'sys'
 
-    def __init__(self, type):
+    def __init__(self, type, *, mark=None):
         super().__init__()
         self.type = type
+        self.mark = mark
 
 
 # Suequence of data blocks that together form a single block of data
@@ -208,12 +225,11 @@ class Label(Node):
 
 
 class Let(Node):
-    type = 'let'
-
     def __init__(self, symbol, definition):
         super().__init__()
         self.symbol = symbol
         self.definition = definition
+        self.type = f'define_{definition.get_type()}'
 
     def move_symbols(self, statements):
         statements.add_definition(self)
@@ -226,6 +242,24 @@ class Macro(Node):
     def __init__(self, statements):
         super().__init__()
         self.statements = statements
+
+    def resolve_mark(self, mark):
+        return Macro(self.statements)
+
+
+class Mark(Node):
+    type = 'mark'
+
+    def __init__(self, node):
+        super().__init__()
+        self.node = node
+
+    def resolve(self):
+        return self.node.resolve_mark(self)
+
+
+class Preamble(Node):
+    type = 'preamble'
 
 
 class Proc(Node):
@@ -244,6 +278,16 @@ class Program(Node):
     def __init__(self, statements):
         super().__init__()
         self.statements = statements
+
+
+# A Reference is a node type that encodes a reference to a Mark node.  A symbol
+# node results in such a Reference node after the symbol is resolved in the
+# current scope.
+class Reference(Node):
+    type = 'ref'
+
+    def __init__(self, mark):
+        self.mark = mark
 
 
 # Sequence of statements that appear in a program, data definition (words or
@@ -292,11 +336,24 @@ class String(Node):
 class Symbol(Node):
     type = 'symbol'
 
-    def __init__(self, symbol):
-        self.symbol = symbol
+    def __init__(self, name):
+        self.name = name
 
 
 class Token(Node):
+    COLON = ':'
+    CONT = 'CONT'
+    DATA = 'DATA'
+    DEF = 'DEF'
+    END = 'END'
+    IF = 'IF'
+    LBRACKET = '['
+    LET = 'LET'
+    LPAREN = '('
+    RBRACKET = ']'
+    RPAREN = ')'
+    THEN = 'THEN'
+
     def __init__(self, type):
         super().__init__()
         self.type = type
