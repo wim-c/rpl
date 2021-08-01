@@ -2,6 +2,7 @@
 import tokens
 import blocks
 
+
 # Class that implements all actions from the rules.txt definition.
 class Actions:
     def __init__(self):
@@ -226,4 +227,53 @@ class Actions:
             return False
         optimizer.rewind(2)
         optimizer.push_node(mark)
+        return True
+
+    def word_unop(self, optimizer):
+        word, command = optimizer.rewind(2)
+        value = command.get_op()(word.value)
+        word = tokens.Integer(value).from_node(command)
+        optimizer.push_node(word)
+        return True
+
+    def word_word_binop(self, optimizer):
+        word1, word2, command = optimizer.rewind(3)
+        value = command.get_op()(word1.value, word2.value)
+        word = tokens.Integer(value).from_node(command)
+        optimizer.push_node(word)
+        return True
+
+    def const_unop(self, optimizer):
+        const, unop = optimizer.rewind(2)
+        expr = tokens.Expression([const]).from_node(unop)
+        optimizer.push_node(unop)
+        optimizer.push_node(expr)
+        return True
+
+    def const_const_binop(self, optimizer):
+        const1, const2, binop = optimizer.rewind(3)
+        expr = tokens.Expression([const1]).from_node(binop)
+        optimizer.push_node(binop)
+        optimizer.push_node(const2)
+        optimizer.push_node(expr)
+        return True
+
+    def expr_unop(self, optimizer):
+        expr, unop = optimizer.rewind(2)
+        expr.from_node(unop).append(unop)
+        optimizer.push_node(expr)
+        return True
+
+    def expr_expr_binop(self, optimizer):
+        expr1, expr2, binop = optimizer.rewind(3)
+        expr1.from_node(binop).extend(expr2.nodes)
+        expr1.append(binop)
+        optimizer.push_node(expr1)
+        return True
+
+    def expr_const_binop(self, optimizer):
+        expr, const, binop = optimizer.rewind(3)
+        expr.from_node(binop).append(const)
+        expr.append(binop)
+        optimizer.push_node(expr)
         return True

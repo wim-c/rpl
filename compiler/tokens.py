@@ -1,4 +1,5 @@
 import math
+import ops
 
 # Abstract base class of all objects that can appear in a program.  The type of
 # the object (a string) is used in reduction rules for the optimizer.  See the
@@ -87,18 +88,18 @@ class Command(Node):
     FETCH = '@'
     FN = 'fn'
     FOR = 'for'
-    GE = '>='
+    GEQ = '>='
     GET = 'get'
     GOSUB = 'gosub'
     GOTO = 'goto'
     GT = '>'
     INPUT = 'input'
     INT = 'int'
-    LE = '<='
+    LEQ = '<='
     LT = '<'
     MOD = '\\'
     MUL = '*'
-    NE = '<>'
+    NEQ = '<>'
     NEW = 'new'
     NEXT = 'next'
     NOT = 'not'
@@ -124,6 +125,27 @@ class Command(Node):
         self.type = type
         self.mark = mark
 
+    def get_op(self):
+        return self.ops[self.type]
+
+Command.ops = {
+    Command.ADD: ops.binop_add,
+    Command.AND: ops.binop_and,
+    Command.DIV: ops.binop_div,
+    Command.EQ: ops.binop_eq,
+    Command.GEQ: ops.binop_geq,
+    Command.GT: ops.binop_gt,
+    Command.INT: ops.unop_int,
+    Command.LEQ: ops.binop_leq,
+    Command.LT: ops.binop_lt,
+    Command.MOD: ops.binop_mod,
+    Command.MUL: ops.binop_mul,
+    Command.NEQ: ops.binop_neq,
+    Command.NOT: ops.unop_not,
+    Command.OR: ops.binop_or,
+    Command.SUB: ops.binop_sub
+}
+
 
 # Suequence of data blocks that together form a single block of data
 # bytes in a compiled program.
@@ -139,6 +161,20 @@ class Data(Node):
     def move_symbols(self, statements):
         for block in self.blocks:
             block.move_symbols(statements)
+
+
+class Expression(Node):
+    type = 'expr'
+
+    def __init__(self, nodes):
+        super().__init__()
+        self.nodes = nodes
+
+    def append(self, node):
+        self.nodes.append(node)
+
+    def extend(self, nodes):
+        self.nodes.extend(nodes)
 
 
 class Float(Node):

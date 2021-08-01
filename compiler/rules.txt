@@ -1,4 +1,4 @@
-# Single node reductions
+# Single node reductions.
 push_END           :  END
 push_THEN          :  THEN
 push_bytes         :  bytes
@@ -21,3 +21,31 @@ beq_to_bne?  :  beq goto mark
 
 # Simplify zero offset goto.
 zero_offset_goto?  :  goto mark
+
+# Unary operators.
+unop  :>  int not
+
+# Binary operators.
+binop  :>  * + - / < <= <> = > >= \ and or
+
+# Unary operators on words.
+word_unop  :  word unop
+
+# Binary operators on words.
+word_word_binop  :  word word binop
+
+# Generalization of compile time constant terms.
+const  :>  word ref expr
+
+# Coerce argument to expr in const unary.
+const_unop  : const unop
+
+# Coerce first argument to expr in const binary.
+const_const_binop  : const const binop
+
+# Unary expressions.
+expr_unop  :  expr unop
+
+# Binary expressions.
+expr_expr_binop   : expr expr binop
+expr_const_binop  : expr const binop
