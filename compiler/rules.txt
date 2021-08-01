@@ -15,3 +15,9 @@ push_program       :  program
 push_statements    :  statements
 push_symbol        :  symbol
 push_words         :  words
+
+# Simplify conditional branch over a goto into a bne.
+beq_to_bne?  :  beq goto mark
+
+# Simplify zero offset goto.
+zero_offset_goto?  :  goto mark

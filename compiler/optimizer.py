@@ -96,6 +96,14 @@ class Optimizer:
         self.states.clear()
         self.parser.goto(0)
 
+    # Return given number of nodes from the optimized nodes stack.  Does not
+    # pop these nodes.
+    def peek(self, n=None):
+        if n is None:
+            return self.nodes[-1]
+        else:
+            return self.nodes[-n:]
+
     # Pop and return n nodes from the optimized nodes stack and reset the parse
     # state accordingly.
     def rewind(self, n=None):

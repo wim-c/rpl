@@ -207,3 +207,23 @@ class Actions:
         optimizer.push_node(beq)
 
         return True
+
+    def beq_to_bne(self, optimizer):
+        beq, goto, mark = optimizer.peek(3)
+        if beq.mark is not mark:
+            return False
+        elif goto.mark is None:
+            return False
+        bne = tokens.Command(tokens.Command.BNE, mark=goto.mark)
+        optimizer.rewind(3)
+        optimizer.push_node(mark)
+        optimizer.push_node(bne)
+        return True
+
+    def zero_offset_goto(self, optimizer):
+        goto, mark = optimizer.peek(2)
+        if goto.mark is not mark:
+            return False
+        optimizer.rewind(2)
+        optimizer.push_node(mark)
+        return True

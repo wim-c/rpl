@@ -3,7 +3,10 @@
 
 class ParseStateMachine:
     transitions = (
-        (('symbol', None, 14), ('macro', None, 10), ('data', None, 4), ('THEN', None, 1), ('program', None, 12), ('END', None, 0), ('proc', None, 11), ('define_macro', None, 6), ('statements', None, 13), ('define_data', None, 5), ('if', None, 8), ('contif', None, 3), ('label', None, 9), ('define_proc', None, 7), ('words', None, 15), ('bytes', None, 2)),
+        (('END', None, 0), ('THEN', None, 1), ('define_proc', None, 7), ('if', None, 8), ('proc', None, 11), ('program', None, 12), ('define_macro', None, 6), ('label', None, 9), ('data', None, 4), ('contif', None, 3), ('goto', 1), ('beq', 2), ('bytes', None, 2), ('words', None, 15), ('symbol', None, 14), ('statements', None, 13), ('macro', None, 10), ('define_data', None, 5)),
+        (('mark', 0, 17),),
+        (('goto', 3),),
+        (('mark', 0, 16, 17),),
     )
 
     order = {
@@ -33,7 +36,9 @@ class ParseStateMachine:
             owner.push_program,
             owner.push_statements,
             owner.push_symbol,
-            owner.push_words
+            owner.push_words,
+            owner.beq_to_bne,
+            owner.zero_offset_goto
         )
 
         self.state = 0
