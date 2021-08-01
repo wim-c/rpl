@@ -202,7 +202,7 @@ class Actions:
         # current THEN mark.  This will be the end mark if there are no THEN
         # statements blocks.
         mark = self.then_marks[-1]
-        beq = tokens.Command(tokens.Command.BEQ, mark=mark)
+        beq = tokens.Command(tokens.Command.BEQ, mark=mark).from_node(if_)
         push_if_block(if_.blocks[0])
         optimizer.push_node(beq)
 
@@ -214,7 +214,7 @@ class Actions:
             return False
         elif goto.mark is None:
             return False
-        bne = tokens.Command(tokens.Command.BNE, mark=goto.mark)
+        bne = tokens.Command(tokens.Command.BNE, mark=goto.mark).from_node(beq)
         optimizer.rewind(3)
         optimizer.push_node(mark)
         optimizer.push_node(bne)
