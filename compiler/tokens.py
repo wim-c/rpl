@@ -120,13 +120,21 @@ class Command(Node):
     SWAP = '%'
     SYS = 'sys'
 
-    def __init__(self, type, *, mark=None):
+    def __init__(self, type, *, command=None, mark=None, const=None):
         super().__init__()
         self.type = type
-        self.mark = mark
+        if command is None:
+            self.mark = mark
+            self.const = const
+        else:
+            self.mark = command.mark if mark is None else mark
+            self.const = command.const if const is None else const
 
     def get_op(self):
         return self.ops[self.type]
+
+    def has_data(self):
+        return self.mark is not None or self.const is not None
 
 Command.ops = {
     Command.ADD: ops.binop_add,

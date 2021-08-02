@@ -17,10 +17,10 @@ push_symbol        :  symbol
 push_words         :  words
 
 # Simplify conditional branch over a goto into a bne.
-beq_to_bne?  :  beq goto mark
+beq_goto_mark?  :  beq goto mark
 
 # Simplify zero offset goto.
-zero_offset_goto?  :  goto mark
+goto_mark?  :  goto mark
 
 # Unary operators.
 unop  :>  int not
@@ -49,3 +49,15 @@ expr_unop  :  expr unop
 # Binary expressions.
 expr_expr_binop   : expr expr binop
 expr_const_binop  : expr const binop
+
+# Generalization of goto and gosub.
+branch  :>  goto gosub
+
+# Reference branch folding.
+ref_branch?  :  ref branch
+
+# Constant goto and gosub folding
+const_branch?  :  const branch
+
+# Tail call optimization.
+gosub_return  :  gosub return

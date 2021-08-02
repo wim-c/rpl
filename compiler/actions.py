@@ -209,7 +209,7 @@ class Actions:
 
         return True
 
-    def beq_to_bne(self, optimizer):
+    def beq_goto_mark(self, optimizer):
         beq, goto, mark = optimizer.peek(3)
         if beq.mark is not mark:
             return False
@@ -221,7 +221,7 @@ class Actions:
         optimizer.push_node(bne)
         return True
 
-    def zero_offset_goto(self, optimizer):
+    def goto_mark(self, optimizer):
         goto, mark = optimizer.peek(2)
         if goto.mark is not mark:
             return False
@@ -276,4 +276,28 @@ class Actions:
         expr.from_node(binop).append(const)
         expr.append(binop)
         optimizer.push_node(expr)
+        return True
+
+    def ref_branch(self, optimizer):
+        branch = optimizer.peek()
+        if branch.has_data():
+            return False
+        ref, branch = optimizer.rewind(2)
+        branch.mark = ref.mark
+        optimizer.push_node(branch)
+        return True
+
+    def const_branch(self, optimizer):
+        branch = optimizer.peek()
+        if branch.has_data():
+            return False
+        const, branch = optimizer.rewind(2)
+        branch.const = const
+        optimizer.push_node(branch)
+        return True
+
+    def gosub_return(self, optimizer):
+        gosub, return_ = optimizer.rewind(2)
+        goto = tokens.Command(tokens.Command.GOTO, command=gosub).from_node(gosub)
+        optimizer.push_node(goto)
         return True
