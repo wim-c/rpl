@@ -6,8 +6,14 @@ class CompiledBlock:
 
 
 class CodeBlock(CompiledBlock):
-    pass
+    def assign_address(self, address):
+        for node in self.nodes:
+            address = node.assign_address(address)
+        return address
 
 
 class DataBlock(CompiledBlock):
-    pass
+    def assign_address(self, address):
+        for node in self.nodes:
+            address = node.assign_word_address(address)
+        return address

@@ -50,3 +50,19 @@ def binop_and(x, y):
 
 def binop_or(x, y):
     return x | y
+
+unop_int.arity = 1
+unop_not.arity = 1
+binop_mul.arity = 2
+binop_add.arity = 2
+binop_sub.arity = 2
+binop_div.arity = 2
+binop_lt.arity = 2
+binop_leq.arity = 2
+binop_neq.arity = 2
+binop_eq.arity = 2
+binop_gt.arity = 2
+binop_geq.arity = 2
+binop_mod.arity = 2
+binop_and.arity = 2
+binop_or.arity = 2

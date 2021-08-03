@@ -1,6 +1,14 @@
 import math
 import ops
 
+# Normalize an integral value to the signed word range.
+def to_word(value):
+    value = value & 0xffff
+    if value >= 0x8000:
+        value -= 0x10000
+    return value
+
+
 # Abstract base class of all objects that can appear in a program.  The type of
 # the object (a string) is used in reduction rules for the optimizer.  See the
 # file rules.txt for all reduction rules.  A node instance can copy source file
@@ -41,6 +49,49 @@ class Node:
         self.column = n.column
         return self
 
+    # Assign address to this node's code and return the next address.
+    def assign_address(self, address):
+        # Generate no code by default.
+        return address
+
+    # Assign address to this node's code and return the next address based on
+    # the encoding of the mark (relative or absolute).
+    def assign_offset_address(self, address, target):
+        if (target <= address and address - target <= 0xff) or \
+           (target >= address + 2 and target - address - 2 <= 0xff):
+            # Relative encoding of target.
+            return address + 2
+        else:
+            # Absolute encoding of target.
+            return address + 3
+
+    # Assign address to this node's code and return the next address based on
+    # the encoding of a signed word value.
+    def assign_value_address(self, address, value):
+        if -32 <= value and value < 32:
+            return address + 1
+        elif -8192 <= value and value < 8192:
+            return address + 2
+        else:
+            return address + 3
+
+    def assign_word_address(self, address):
+        # Assume word size.
+        return address + 2
+
+    def assign_byte_address(self, address):
+        # Assume byte size.
+        return address + 1
+
+    def eval(self):
+        return None
+
+    def push_to(self, stack):
+        value = self.eval()
+        if value is not None:
+            stack.append(value)
+            return True
+
 
 # Concrete node types in alphabetical order.
 
@@ -50,6 +101,11 @@ class ByteData(Node):
     def __init__(self, nodes):
         super().__init__()
         self.nodes = nodes
+
+    def assign_word_address(self, address):
+        for node in self.nodes:
+            address = node.assign_byte_address(address)
+        return address
 
 
 class Bytes(Node):
@@ -69,6 +125,9 @@ class Chars(Node):
     def __init__(self, value):
         super().__init__()
         self.value = value
+
+    def assign_word_address(self, address):
+        return address + len(self.value)
 
 
 # Command tokens have no auxiliary parameters.  The value attribute indicates
@@ -136,6 +195,34 @@ class Command(Node):
     def has_data(self):
         return self.mark is not None or self.const is not None
 
+    def assign_address(self, address):
+        if self.type not in self.branches:
+            return address + 1
+        elif self.mark is not None and self.mark.address is not None:
+            return self.assign_offset_address(address, self.mark.address)
+        elif self.const is not None and (value := self.const.eval()) is not None:
+            return self.assign_offset_address(address, value)
+        else:
+            return address + 3
+
+    def push_to(self, stack):
+        op = self.ops.get(self.type)
+        if op is None:
+            return
+        elif op.arity == 1:
+            stack[-1] = to_word(op(stack[-1]))
+        else:
+            y = stack.pop()
+            stack[-1] = to_word(op(stack[-1], y))
+        return True
+
+Command.branches = {
+    Command.BEQ,
+    Command.BNE,
+    Command.GOSUB,
+    Command.GOTO
+}
+
 Command.ops = {
     Command.ADD: ops.binop_add,
     Command.AND: ops.binop_and,
@@ -184,6 +271,20 @@ class Expression(Node):
     def extend(self, nodes):
         self.nodes.extend(nodes)
 
+    def assign_address(self, address):
+        value = self.eval()
+        if value is None:
+            return address + 3
+        else:
+            return self.assign_value_address(address, value)
+
+    def eval(self):
+        stack = []
+        for node in self.nodes:
+            if not node.push_to(stack):
+                return
+        return stack[0]
+
 
 class Float(Node):
     type = 'float'
@@ -230,6 +331,9 @@ class Float(Node):
 
         self.data = data
 
+    def assign_word_address(self, address):
+        return address + 5
+
 
 class If(Node):
     type = 'if'
@@ -248,13 +352,13 @@ class Integer(Node):
 
     def __init__(self, value):
         super().__init__()
+        self.value = to_word(value)
 
-        # Normalize value to signed word.
-        value = value & 0xffff
-        if value >= 0x8000:
-            value -= 0x10000
+    def assign_address(self, address):
+        return self.assign_value_address(address, self.value)
 
-        self.value = value
+    def eval(self):
+        return self.value
 
 
 class Label(Node):
@@ -297,13 +401,27 @@ class Mark(Node):
     def __init__(self, node):
         super().__init__()
         self.node = node
+        self.address = None
 
     def resolve(self):
         return self.node.resolve_mark(self)
 
+    def assign_address(self, address):
+        self.address = address
+        return address
+
+    def assign_word_address(self, address):
+        return self.assign_address(address)
+
+    def assign_byte_address(self, address):
+        return self.assign_address(address)
+
 
 class Preamble(Node):
     type = 'preamble'
+
+    def assign_address(self, address):
+        return address + 3
 
 
 class Proc(Node):
@@ -332,6 +450,16 @@ class Reference(Node):
 
     def __init__(self, mark):
         self.mark = mark
+
+    def assign_address(self, address):
+        if self.mark.address is None:
+            # Assume  encoding with largest next address.
+            return address + 3
+        else:
+            return self.assign_offset_address(address, self.mark.address)
+
+    def eval(self):
+        return self.mark.address
 
 
 # Sequence of statements that appear in a program, data definition (words or
@@ -375,6 +503,9 @@ class String(Node):
 
     def __init__(self, value):
         self.value = value
+
+    def assign_word_address(self, address):
+        return address + len(self.value) + 1
 
 
 class Symbol(Node):
