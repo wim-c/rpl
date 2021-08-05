@@ -75,17 +75,23 @@ class Node:
         else:
             return address + 3
 
+    # Assign address to this node's data inside a DataBlock block.
     def assign_word_address(self, address):
         # Assume word size.
         return address + 2
 
+    # Assign address to this node's data inside a ByteData node.
     def assign_byte_address(self, address):
         # Assume byte size.
         return address + 1
 
+    # Evaluate this node or return None if the node cannot be evaluated (yet).
     def eval(self):
         return None
 
+    # Push this node on the provided stack as an action to evaluate a compile
+    # time expressions.  Either pushes a word to the stack or manipulates the
+    # current stack content.  Returns True if the node was pushed.
     def push_to(self, stack):
         value = self.eval()
         if value is not None:
