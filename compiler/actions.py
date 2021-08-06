@@ -301,3 +301,27 @@ class Actions:
         goto = tokens.Command(tokens.Command.GOTO, command=gosub).from_node(gosub)
         optimizer.push_node(goto)
         return True
+
+    def mark_goto(self, optimizer):
+        goto = optimizer.peek()
+        return goto.has_data() and self.mark_final(optimizer)
+
+    def mark_final(self, optimizer):
+        mark, final = optimizer.peek(2)
+        if mark.marked is final:
+            return False
+        mark, final = optimizer.rewind(2)
+        mark.marked = final
+        optimizer.push_node(final)
+        optimizer.push_node(mark)
+        return True
+
+    def mark_mark(self, optimizer):
+        mark1, mark2 = optimizer.peek(2)
+        if mark1.marked is mark2.marked:
+            return False
+        mark1, mark2 = optimizer.rewind(2)
+        mark1.marked = mark2.marked
+        optimizer.push_node(mark2)
+        optimizer.push_node(mark1)
+        return True

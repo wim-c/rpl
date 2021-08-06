@@ -408,6 +408,7 @@ class Mark(Node):
         super().__init__()
         self.node = node
         self.address = None
+        self.marked = None
 
     def resolve(self):
         return self.node.resolve_mark(self)
