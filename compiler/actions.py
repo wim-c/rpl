@@ -1,10 +1,16 @@
 
 import tokens
 import blocks
+import rules
 
 
 # Class that implements all actions from the rules.txt definition.
 class Actions:
+    @classmethod
+    def parser_factory(cls):
+        actions = cls()
+        return rules.ParseStateMachine(actions)
+
     def __init__(self):
         super().__init__()
         self.then_marks = []
@@ -33,9 +39,9 @@ class Actions:
         return True
 
     def push_contif(self, optimizer):
-        optimizer.rewind()
+        contif = optimizer.rewind()
         mark = self.then_marks[-1]
-        beq = tokens.Command(tokens.Command.BEQ, mark=mark)
+        beq = tokens.Command(tokens.Command.BEQ, mark=mark).from_node(contif)
         optimizer.push_node(beq)
         return True
 
