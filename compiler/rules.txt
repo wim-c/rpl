@@ -16,15 +16,6 @@ push_statements    :  statements
 push_symbol        :  symbol
 push_words         :  words
 
-# Generalization of conditional branches.
-cond  :>  beq bne
-
-# Simplify conditional branch over a goto into a bne.
-cond_goto_mark?  :  cond goto mark
-
-# Simplify zero offset goto.
-goto_mark?  :  goto mark
-
 # Unary operators.
 unop  :>  int not
 
@@ -62,9 +53,6 @@ ref_branch?  :  ref branch
 # Constant goto and gosub folding
 const_branch?  :  const branch
 
-# Tail call optimization.
-gosub_return  :  gosub return
-
 # Store final commands following a mark on the mark itself.
 mark_goto?   :  mark goto
 mark_final?  :  mark return
@@ -76,8 +64,3 @@ compare  :>  < <= <> = > >=
 
 # Simplify negated boolean operators
 compare_not  :  compare not
-
-# Simplify costant conditional branches
-word_cond  :  word cond
-word_eq_cond?  :  word = cond
-word_neq_cond?  :  word <> cond

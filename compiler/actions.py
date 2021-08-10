@@ -15,6 +15,16 @@ class Actions:
         super().__init__()
         self.then_marks = []
 
+    def push_END(self, optimizer):
+        optimizer.rewind()
+        optimizer.close_scope()
+        return True
+            
+    def push_THEN(self, optimizer):
+        optimizer.rewind()
+        self.then_marks.pop()
+        return True
+
     def push_bytes(self, optimizer):
         bytes = optimizer.rewind()
 
@@ -27,22 +37,109 @@ class Actions:
         optimizer.extend_blocks(blocks)
         return True
 
-    def push_words(self, optimizer):
-        words = optimizer.rewind()
-
-        opt = optimizer.create_new()
-        opt.push_node(words.statements)
-        nodes, blocks = opt.compile()
-
-        optimizer.emit_nodes(nodes)
-        optimizer.extend_blocks(blocks)
-        return True
-
     def push_contif(self, optimizer):
         contif = optimizer.rewind()
         mark = self.then_marks[-1]
         beq = tokens.Command(tokens.Command.BEQ, mark=mark).from_node(contif)
         optimizer.push_node(beq)
+        return True
+
+    # Reduce a data block
+    def push_data(self, optimizer):
+        data = optimizer.rewind()
+        mark = data.mark().from_node(data)
+
+        opt = optimizer.create_new()
+        opt.push_nodes(data.blocks)
+        opt.push_node(mark)
+        opt.compile_to(blocks.DataBlock, optimizer.blocks)
+
+        ref = mark.resolve().from_node(data)
+        optimizer.push_node(ref)
+        return True
+
+    def push_define_data(self, optimizer):
+        let = optimizer.rewind()
+        mark = optimizer.scope.get_mark(let.symbol)
+
+        if mark is not None:
+            opt = optimizer.create_new()
+            opt.push_nodes(let.definition.blocks)
+            opt.push_node(mark)
+            opt.compile_to(blocks.DataBlock, optimizer.blocks)
+
+        return True
+        
+    def push_define_macro(self, optimizer):
+        optimizer.rewind()
+        return True
+
+    def push_define_proc(self, optimizer):
+        let = optimizer.rewind()
+        mark = optimizer.scope.get_mark(let.symbol)
+
+        if mark is not None:
+            return_ = tokens.Command(tokens.Command.RETURN)
+            opt = optimizer.create_new()
+            opt.push_node(return_)
+            opt.push_node(let.definition.statements)
+            opt.push_node(mark)
+            opt.compile_to(blocks.CodeBlock, optimizer.blocks)
+
+        return True
+
+    def push_if(self, optimizer):
+        if_ = optimizer.rewind()
+
+        def push_then_mark():
+            then = tokens.Token(tokens.Token.THEN)
+            mark = then.mark()
+            self.then_marks.append(mark)
+            optimizer.push_node(then)
+            optimizer.push_node(mark)
+
+        # Create mark beyond END of if statement.
+        push_then_mark()
+        end_mark = self.then_marks[-1]
+
+        # Push statements block followed by a jump to the end mark.
+        def push_if_block(block):
+            goto = tokens.Command(tokens.Command.GOTO, mark=end_mark)
+            optimizer.push_node(goto)
+            optimizer.push_node(block)
+
+        # Push all statements blocks but the first and prepare a THEN mark for
+        # each of them.
+        for block in if_.blocks[:0:-1]:
+            push_if_block(block)
+            push_then_mark()
+
+        # Push first statements block and a conditional jump (if false) to the
+        # current THEN mark.  This will be the end mark if there are no THEN
+        # statements blocks.
+        mark = self.then_marks[-1]
+        beq = tokens.Command(tokens.Command.BEQ, mark=mark).from_node(if_)
+        push_if_block(if_.blocks[0])
+        optimizer.push_node(beq)
+
+        return True
+        
+    def push_label(self, optimizer):
+        label = optimizer.rewind()
+        mark = optimizer.scope.get_mark(label.symbol)
+
+        if mark is not None:
+            optimizer.push_node(mark)
+
+        return True
+
+    # Reduce a Macro node.
+    def push_macro(self, optimizer):
+        macro = optimizer.rewind()
+        end = tokens.Token(tokens.Token.END)
+        optimizer.push_node(end)
+        optimizer.push_node(macro.statements)
+        optimizer.open_scope()
         return True
 
     # Reduce a procedure.
@@ -58,20 +155,6 @@ class Actions:
         opt.compile_to(blocks.CodeBlock, optimizer.blocks)
 
         ref = mark.resolve().from_node(proc)
-        optimizer.push_node(ref)
-        return True
-
-    # Reduce a data block
-    def push_data(self, optimizer):
-        data = optimizer.rewind()
-        mark = data.mark().from_node(data)
-
-        opt = optimizer.create_new()
-        opt.push_nodes(data.blocks)
-        opt.push_node(mark)
-        opt.compile_to(blocks.DataBlock, optimizer.blocks)
-
-        ref = mark.resolve().from_node(data)
         optimizer.push_node(ref)
         return True
 
@@ -111,34 +194,6 @@ class Actions:
         optimizer.push_nodes(statements.statements)
         return True
 
-    # Reduce a Macro node.
-    def push_macro(self, optimizer):
-        macro = optimizer.rewind()
-        end = tokens.Token(tokens.Token.END)
-        optimizer.push_node(end)
-        optimizer.push_node(macro.statements)
-        optimizer.open_scope()
-        return True
-        
-    def push_THEN(self, optimizer):
-        optimizer.rewind()
-        self.then_marks.pop()
-        return True
-
-    def push_END(self, optimizer):
-        optimizer.rewind()
-        optimizer.close_scope()
-        return True
-            
-    def push_label(self, optimizer):
-        label = optimizer.rewind()
-        mark = optimizer.scope.get_mark(label.symbol)
-
-        if mark is not None:
-            optimizer.push_node(mark)
-
-        return True
-
     def push_symbol(self, optimizer):
         symbol = optimizer.rewind()
         mark = optimizer.scope.get_mark(symbol)
@@ -148,93 +203,16 @@ class Actions:
             optimizer.push_node(value)
 
         return True
-        
-    def push_define_macro(self, optimizer):
-        optimizer.rewind()
-        return True
 
-    def push_define_proc(self, optimizer):
-        let = optimizer.rewind()
-        mark = optimizer.scope.get_mark(let.symbol)
+    def push_words(self, optimizer):
+        words = optimizer.rewind()
 
-        if mark is not None:
-            return_ = tokens.Command(tokens.Command.RETURN)
-            opt = optimizer.create_new()
-            opt.push_node(return_)
-            opt.push_node(let.definition.statements)
-            opt.push_node(mark)
-            opt.compile_to(blocks.CodeBlock, optimizer.blocks)
+        opt = optimizer.create_new()
+        opt.push_node(words.statements)
+        nodes, blocks = opt.compile()
 
-        return True
-
-    def push_define_data(self, optimizer):
-        let = optimizer.rewind()
-        mark = optimizer.scope.get_mark(let.symbol)
-
-        if mark is not None:
-            opt = optimizer.create_new()
-            opt.push_nodes(let.definition.blocks)
-            opt.push_node(mark)
-            opt.compile_to(blocks.DataBlock, optimizer.blocks)
-
-        return True
-
-    def push_if(self, optimizer):
-        if_ = optimizer.rewind()
-
-        def push_then_mark():
-            then = tokens.Token(tokens.Token.THEN)
-            mark = then.mark()
-            self.then_marks.append(mark)
-            optimizer.push_node(then)
-            optimizer.push_node(mark)
-
-        # Create mark beyond END of if statement.
-        push_then_mark()
-        end_mark = self.then_marks[-1]
-
-        # Push statements block followed by a jump to the end mark.
-        def push_if_block(block):
-            goto = tokens.Command(tokens.Command.GOTO, mark=end_mark)
-            optimizer.push_node(goto)
-            optimizer.push_node(block)
-
-        # Push all statements blocks but the first and prepare a THEN mark for
-        # each of them.
-        for block in if_.blocks[:0:-1]:
-            push_if_block(block)
-            push_then_mark()
-
-        # Push first statements block and a conditional jump (if false) to the
-        # current THEN mark.  This will be the end mark if there are no THEN
-        # statements blocks.
-        mark = self.then_marks[-1]
-        beq = tokens.Command(tokens.Command.BEQ, mark=mark).from_node(if_)
-        push_if_block(if_.blocks[0])
-        optimizer.push_node(beq)
-
-        return True
-
-    def cond_goto_mark(self, optimizer):
-        cond, goto, mark = optimizer.peek(3)
-        if cond.mark is not mark or goto.mark is None:
-            return False
-        elif cond.get_type() == tokens.Command.BEQ:
-            type = tokens.Command.BNE
-        else:
-            type = tokens.Command.BEQ
-        node = tokens.Command(type, mark=goto.mark).from_node(cond)
-        optimizer.rewind(3)
-        optimizer.push_node(mark)
-        optimizer.push_node(node)
-        return True
-
-    def goto_mark(self, optimizer):
-        goto, mark = optimizer.peek(2)
-        if goto.mark is not mark:
-            return False
-        optimizer.rewind(2)
-        optimizer.push_node(mark)
+        optimizer.emit_nodes(nodes)
+        optimizer.extend_blocks(blocks)
         return True
 
     def word_unop(self, optimizer):
@@ -304,12 +282,6 @@ class Actions:
         optimizer.push_node(branch)
         return True
 
-    def gosub_return(self, optimizer):
-        gosub, return_ = optimizer.rewind(2)
-        goto = tokens.Command(tokens.Command.GOTO, command=gosub).from_node(gosub)
-        optimizer.push_node(goto)
-        return True
-
     def mark_goto(self, optimizer):
         goto = optimizer.peek()
         return goto.has_data() and self.mark_final(optimizer)
@@ -353,32 +325,10 @@ class Actions:
         optimizer.push_node(node)
         return True
 
-    def word_cond(self, optimizer):
-        word, cond = optimizer.rewind(2)
-        type = cond.get_type()
-        if (type == tokens.Command.BEQ and word.value == 0) or \
-                (type == tokens.Command.BNE and word.value != 0):
-            node = tokens.Command(tokens.Command.GOTO, command=cond).from_node(cond)
-            optimizer.push_node(node)
-        return True
-
-    def word_eq_cond(self, optimizer):
-        word, eq, cond = optimizer.peek(3)
-        if word.value != 0:
+    def goto_mark(self, optimizer):
+        goto, mark = optimizer.peek(2)
+        if goto.mark is not mark:
             return False
-        elif cond.get_type() == tokens.Command.BEQ:
-            type = tokens.Command.BNE
-        else:
-            type = tokens.Command.BEQ
-        node = tokens.Command(type, command=cond).from_node(cond)
-        optimizer.rewind(3)
-        optimizer.push_node(node)
-        return True
-
-    def word_neq_cond(self, optimizer):
-        word, neq, cond = optimizer.peek(3)
-        if word.value != 0:
-            return False
-        optimizer.rewind(3)
-        optimizer.push_node(cond)
+        optimizer.rewind(2)
+        optimizer.push_node(mark)
         return True

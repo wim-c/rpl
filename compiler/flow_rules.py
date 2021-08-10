@@ -3,16 +3,22 @@
 
 class ParseStateMachine:
     transitions = (
-        (('mark', 0, 0), ('gosub', 0, 1), ('goto', 2, 3), ('final', 1), ('branch', 0, 2)),
-        (('command', None, 5), ('const', None, 6)),
-        (('mark', 0, 4, 0), ('command', None, 5), ('const', None, 6)),
+        (('mark', 0, 0), ('goto', 1, 3), ('final', 2), ('cond', 3, 2), ('word', 4), ('gosub', 5, 1)),
+        (('command', None, 10), ('mark', 0, 4, 0), ('const', None, 11)),
+        (('command', None, 10), ('const', None, 11)),
+        (('goto', 6, 3),),
+        (('<>', 7), ('cond', None, 7), ('=', 8)),
+        (('return', None, 6),),
+        (('command', None, 10), ('mark', 0, 5, 4, 0), ('const', None, 11)),
+        (('cond', 3, 9, 2),),
+        (('cond', 3, 8, 2),),
     )
 
     order = {
-        'branch': {'bne', 'beq'},
-        'final': {'goto', 'stop', 'return'},
-        'command': {'int', 'next', 'or', 'not', 'rnd', 'str$', '-', 'poke', '@', '\\', 'stop', '<>', 'sys', '#', '$', '*', 'return', 'chr$', 'and', 'fn', '%', '>=', 'new', 'input', '^', '!', 'for', 'clr', '<=', 'print', 'beq', 'goto', '+', 'get', 'gosub', 'peek', '.', ';', '/', 'on', '>', '<', 'bne', '='},
-        'const': {'ref', 'word', 'expr'}
+        'cond': {'bne', 'beq'},
+        'final': {'return', 'goto', 'stop'},
+        'command': {'@', '!', 'clr', 'goto', '\\', '+', '=', '>', 'not', '$', 'rnd', 'int', 'bne', '*', ';', '%', 'new', 'get', 'sys', 'chr$', 'next', 'on', 'peek', '<>', '/', '.', '-', 'poke', '<=', 'print', '<', 'and', '#', 'gosub', 'fn', '>=', 'beq', 'for', 'input', 'return', 'str$', '^', 'stop', 'or'},
+        'const': {'expr', 'word', 'ref'}
     }
 
     @classmethod
@@ -25,9 +31,14 @@ class ParseStateMachine:
         self.methods = (
             owner.push_mark,
             owner.push_gosub,
-            owner.push_branch,
+            owner.push_cond,
             owner.push_goto,
             owner.goto_mark,
+            owner.cond_goto_mark,
+            owner.gosub_return,
+            owner.word_cond,
+            owner.word_eq_cond,
+            owner.word_neq_cond,
             owner.final_command,
             owner.final_const
         )

@@ -2,6 +2,7 @@
 import tokens
 import flow_rules
 
+
 class FlowActions:
     @classmethod
     def parser_factory(cls):
@@ -42,9 +43,9 @@ class FlowActions:
 
         return True
 
-    def push_branch(self, optimizer):
-        branch = optimizer.peek()
-        if (marked := branch.mark.marked) is None or \
+    def push_cond(self, optimizer):
+        cond = optimizer.peek()
+        if (marked := cond.mark.marked) is None or \
                 marked.get_type() != tokens.Command.GOTO or \
                 marked.mark is None:
             # Not a branch to a jump to mark command.  Leave it untouched.
@@ -52,7 +53,7 @@ class FlowActions:
 
         # Replace by a branch to the marked jump target.
         optimizer.rewind()
-        node = tokens.Command(branch.get_type(), mark=marked.mark).from_node(branch)
+        node = tokens.Command(cond.get_type(), mark=marked.mark).from_node(cond)
         optimizer.push_node(node)
         return True
 
@@ -78,6 +79,56 @@ class FlowActions:
         # Remove a jump to a mark that directly follows it.
         optimizer.rewind(2)
         optimizer.push_node(mark)
+        return True
+
+    def cond_goto_mark(self, optimizer):
+        cond, goto, mark = optimizer.peek(3)
+        if cond.mark is not mark or goto.mark is None:
+            return False
+        elif cond.get_type() == tokens.Command.BEQ:
+            type = tokens.Command.BNE
+        else:
+            type = tokens.Command.BEQ
+        node = tokens.Command(type, mark=goto.mark).from_node(cond)
+        optimizer.rewind(3)
+        optimizer.push_node(mark)
+        optimizer.push_node(node)
+        return True
+
+    def gosub_return(self, optimizer):
+        gosub, return_ = optimizer.rewind(2)
+        goto = tokens.Command(tokens.Command.GOTO, command=gosub).from_node(gosub)
+        optimizer.push_node(goto)
+        return True
+
+    def word_cond(self, optimizer):
+        word, cond = optimizer.rewind(2)
+        type = cond.get_type()
+        if (type == tokens.Command.BEQ and word.value == 0) or \
+                (type == tokens.Command.BNE and word.value != 0):
+            node = tokens.Command(tokens.Command.GOTO, command=cond).from_node(cond)
+            optimizer.push_node(node)
+        return True
+
+    def word_eq_cond(self, optimizer):
+        word, eq, cond = optimizer.peek(3)
+        if word.value != 0:
+            return False
+        elif cond.get_type() == tokens.Command.BEQ:
+            type = tokens.Command.BNE
+        else:
+            type = tokens.Command.BEQ
+        node = tokens.Command(type, command=cond).from_node(cond)
+        optimizer.rewind(3)
+        optimizer.push_node(node)
+        return True
+
+    def word_neq_cond(self, optimizer):
+        word, neq, cond = optimizer.peek(3)
+        if word.value != 0:
+            return False
+        optimizer.rewind(3)
+        optimizer.push_node(cond)
         return True
 
     def final_command(self, optimizer):

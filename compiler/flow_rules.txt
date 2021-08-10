@@ -5,16 +5,27 @@ push_mark?  :  mark
 push_gosub?  :  gosub
 
 # Generalization of conditional branches.
-branch  :>  beq bne
+cond  :>  beq bne
 
 # Include referenced code and possibly optimize branch target.
-push_branch?  :  branch
+push_cond?  :  cond
 
 # Include referenced code and possibly optimize jump target.
 push_goto?  :  goto
 
-# Skip zero offset jump
+# Simplify zero offset goto.
 goto_mark?  :  goto mark
+
+# Simplify conditional branch over a goto into a bne.
+cond_goto_mark?  :  cond goto mark
+
+# Tail call optimization.
+gosub_return  :  gosub return
+
+# Simplify costant conditional branches
+word_cond  :  word cond
+word_eq_cond?  :  word = cond
+word_neq_cond?  :  word <> cond
 
 # Commands that always divert execution flow.
 final  :>  goto return stop
