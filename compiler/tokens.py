@@ -493,6 +493,12 @@ class Mark(Node):
     def assign_byte_address(self, address):
         return self.assign_address(address)
 
+    def set_block_index(self, block, index):
+        self.block = block
+        self.index = index
+        self.reachable = False
+        self.used = False
+
     def set_reachable(self, marks_to_visit):
         if self.reachable:
             # Only continue passed this mark if it was not set as reachable

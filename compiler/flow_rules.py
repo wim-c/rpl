@@ -3,22 +3,22 @@
 
 class ParseStateMachine:
     transitions = (
-        (('mark', 0, 0), ('goto', 1, 3), ('final', 2), ('cond', 3, 2), ('word', 4), ('gosub', 5, 1)),
-        (('command', None, 10), ('mark', 0, 4, 0), ('const', None, 11)),
-        (('command', None, 10), ('const', None, 11)),
-        (('goto', 6, 3),),
-        (('<>', 7), ('cond', None, 7), ('=', 8)),
+        (('gosub', 1, 1), ('cond', 2, 2), ('goto', 5, 3), ('final', 3), ('mark', 0, 0), ('word', 4)),
         (('return', None, 6),),
-        (('command', None, 10), ('mark', 0, 5, 4, 0), ('const', None, 11)),
-        (('cond', 3, 9, 2),),
-        (('cond', 3, 8, 2),),
+        (('goto', 8, 3),),
+        (('command', None, 10), ('const', None, 11), ('mark', 0, 12, 0)),
+        (('cond', None, 7), ('=', 6), ('<>', 7)),
+        (('command', None, 10), ('const', None, 11), ('mark', 0, 4, 12, 0)),
+        (('cond', 2, 8, 2),),
+        (('cond', 2, 9, 2),),
+        (('command', None, 10), ('const', None, 11), ('mark', 0, 5, 4, 12, 0)),
     )
 
     order = {
-        'cond': {'bne', 'beq'},
+        'cond': {'beq', 'bne'},
         'final': {'return', 'goto', 'stop'},
-        'command': {'@', '!', 'clr', 'goto', '\\', '+', '=', '>', 'not', '$', 'rnd', 'int', 'bne', '*', ';', '%', 'new', 'get', 'sys', 'chr$', 'next', 'on', 'peek', '<>', '/', '.', '-', 'poke', '<=', 'print', '<', 'and', '#', 'gosub', 'fn', '>=', 'beq', 'for', 'input', 'return', 'str$', '^', 'stop', 'or'},
-        'const': {'expr', 'word', 'ref'}
+        'command': {'fn', 'gosub', '<=', 'stop', 'bne', '.', 'or', 'int', '%', 'goto', ';', '+', '/', 'str$', 'next', 'return', 'peek', 'get', '<', '-', '*', 'new', 'on', 'not', '=', '!', '#', 'input', '$', 'and', 'chr$', 'print', 'sys', '<>', '>', 'poke', 'for', 'rnd', '@', 'beq', '>=', 'clr', '\\', '^'},
+        'const': {'ref', 'expr', 'word'}
     }
 
     @classmethod
@@ -40,7 +40,8 @@ class ParseStateMachine:
             owner.word_eq_cond,
             owner.word_neq_cond,
             owner.final_command,
-            owner.final_const
+            owner.final_const,
+            owner.final_mark
         )
 
         self.state = 0

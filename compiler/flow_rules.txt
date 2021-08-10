@@ -41,3 +41,6 @@ const  :>  expr ref word
 # Skip code following a final command.
 final_command  :  final command
 final_const    :  final const
+
+# Fold identitical final commands separated by a mark
+final_mark?  :  final mark

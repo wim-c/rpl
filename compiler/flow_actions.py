@@ -140,3 +140,25 @@ class FlowActions:
         # Drop a constant after a final command.
         optimizer.rewind(1)
         return True
+
+    def final_mark(self, optimizer):
+        final, mark = optimizer.peek(2)
+        if not mark.used or (marked := mark.marked) is None:
+            # Mark will be removed (not used) or it is not followed by a final
+            # command.  Either way, this rule does not apply.
+            return False
+        elif (final_type := final.get_type()) != marked.get_type():
+            # Types of final commands are not the same.  Do nothing.
+            return False
+        elif final_type == tokens.Command.GOTO and \
+                (final.mark is not marked.mark or \
+                final.const is not marked.const):
+            # Final command is a jump but the jump targets are not the same.
+            # Do nothing.
+            return False
+
+        # Drop the first final command since it will follow directly after the
+        # mark as well.
+        optimizer.rewind(2)
+        optimizer.push_node(mark)
+        return True
