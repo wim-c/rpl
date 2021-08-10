@@ -7,7 +7,7 @@ let main def
         "WELL, THERE AREN'T ANY.\13" print
     end
 
-    "IS YOUR NAME FRED? " getanswer & if then
+    "IS YOUR NAME FRED? " getanswer & 0 = if
         "THEN GO AWAY.\13" print
     end
 end
@@ -18,7 +18,7 @@ let getanswer def
 
     REM Wait for key press.
     waitforanswer:
-        get # if then
+        get # 0 = if
             . waitforanswer goto
         end
 

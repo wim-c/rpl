@@ -16,8 +16,11 @@ push_statements    :  statements
 push_symbol        :  symbol
 push_words         :  words
 
+# Generalization of conditional branches.
+cond  :>  beq bne
+
 # Simplify conditional branch over a goto into a bne.
-beq_goto_mark?  :  beq goto mark
+cond_goto_mark?  :  cond goto mark
 
 # Simplify zero offset goto.
 goto_mark?  :  goto mark
@@ -67,3 +70,14 @@ mark_goto?   :  mark goto
 mark_final?  :  mark return
 mark_final?  :  mark stop
 mark_mark?   :  mark mark
+
+# Generalization of boolean binary operators.
+compare  :>  < <= <> = > >=
+
+# Simplify negated boolean operators
+compare_not  :  compare not
+
+# Simplify costant conditional branches
+word_cond  :  word cond
+word_eq_cond?  :  word = cond
+word_neq_cond?  :  word <> cond

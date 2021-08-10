@@ -215,16 +215,18 @@ class Actions:
 
         return True
 
-    def beq_goto_mark(self, optimizer):
-        beq, goto, mark = optimizer.peek(3)
-        if beq.mark is not mark:
+    def cond_goto_mark(self, optimizer):
+        cond, goto, mark = optimizer.peek(3)
+        if cond.mark is not mark or goto.mark is None:
             return False
-        elif goto.mark is None:
-            return False
-        bne = tokens.Command(tokens.Command.BNE, mark=goto.mark).from_node(beq)
+        elif cond.get_type() == tokens.Command.BEQ:
+            type = tokens.Command.BNE
+        else:
+            type = tokens.Command.BEQ
+        node = tokens.Command(type, mark=goto.mark).from_node(cond)
         optimizer.rewind(3)
         optimizer.push_node(mark)
-        optimizer.push_node(bne)
+        optimizer.push_node(node)
         return True
 
     def goto_mark(self, optimizer):
@@ -330,4 +332,53 @@ class Actions:
         mark1.marked = mark2.marked
         optimizer.push_node(mark2)
         optimizer.push_node(mark1)
+        return True
+
+    def compare_not(self, optimizer):
+        compare, not_ = optimizer.rewind(2)
+        op = compare.get_type()
+        if op == tokens.Command.LT:
+            op = tokens.Command.GEQ
+        elif op == tokens.Command.LEQ:
+            op = tokens.Command.GT
+        elif op == tokens.Command.NEQ:
+            op = tokens.Command.EQ
+        elif op == tokens.Command.EQ:
+            op = tokens.Command.NEQ
+        elif op == tokens.Command.GT:
+            op = tokens.Command.LEQ
+        elif op == tokens.Command.GEQ:
+            op = tokens.Command.LT
+        node = tokens.Command(op).from_node(not_)
+        optimizer.push_node(node)
+        return True
+
+    def word_cond(self, optimizer):
+        word, cond = optimizer.rewind(2)
+        type = cond.get_type()
+        if (type == tokens.Command.BEQ and word.value == 0) or \
+                (type == tokens.Command.BNE and word.value != 0):
+            node = tokens.Command(tokens.Command.GOTO, command=cond).from_node(cond)
+            optimizer.push_node(node)
+        return True
+
+    def word_eq_cond(self, optimizer):
+        word, eq, cond = optimizer.peek(3)
+        if word.value != 0:
+            return False
+        elif cond.get_type() == tokens.Command.BEQ:
+            type = tokens.Command.BNE
+        else:
+            type = tokens.Command.BEQ
+        node = tokens.Command(type, command=cond).from_node(cond)
+        optimizer.rewind(3)
+        optimizer.push_node(node)
+        return True
+
+    def word_neq_cond(self, optimizer):
+        word, neq, cond = optimizer.peek(3)
+        if word.value != 0:
+            return False
+        optimizer.rewind(3)
+        optimizer.push_node(cond)
         return True
