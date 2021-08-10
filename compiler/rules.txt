@@ -61,3 +61,9 @@ const_branch?  :  const branch
 
 # Tail call optimization.
 gosub_return  :  gosub return
+
+# Store final commands following a mark on the mark itself.
+mark_goto?   :  mark goto
+mark_final?  :  mark return
+mark_final?  :  mark stop
+mark_mark?   :  mark mark

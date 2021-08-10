@@ -1,0 +1,32 @@
+# Skip unused marks
+push_mark?  :  mark
+
+# Include referenced code and possibly optimize.
+push_gosub?  :  gosub
+
+# Generalization of conditional branches.
+branch  :>  beq bne
+
+# Include referenced code and possibly optimize branch target.
+push_branch?  :  branch
+
+# Include referenced code and possibly optimize jump target.
+push_goto?  :  goto
+
+# Skip zero offset jump
+goto_mark?  :  goto mark
+
+# Commands that always divert execution flow.
+final  :>  goto return stop
+
+# Commands
+command  :>  ! # $ % * + - . / ; < <= <> = > >= @ \ ^ and beq bne chr$ clr fn
+command  :>  for get gosub goto input int new next not on or peek poke print
+command  :>  return rnd stop str$ sys
+
+# Constants
+const  :>  expr ref word
+
+# Skip code following a final command.
+final_command  :  final command
+final_const    :  final const

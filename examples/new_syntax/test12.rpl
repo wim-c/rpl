@@ -1,104 +1,67 @@
 
--- A card dealing program
+REM A card dealing program
+main gosub
 
--- push all card strings onto the stack
-pushcards &
+let main def
+    REM push all card strings onto the stack
+    pushcards gosub
 
--- number of cards still to draw
-52 
+    REM number of cards still to draw
+    52 
 
 draw:
-    -- get random index between 0 and number of cards
+    REM get random index between 0 and number of cards
     rnd $7fff and ; \
         
-    -- fetch and remove card from stack 
+    REM fetch and remove card from stack 
     2 + $
 
-    -- print it
+    REM print it
     print " " print
     
-    -- draw next card
+    REM draw next card
     1 - # if draw goto end
-    . stop
 
-pushcards:
-    -- push first string
+    REM drop 0 from stack
+    .
+end
+
+let pushcards def
+    REM push first string
     cards
 
 nextcard:
-    -- push the string length
+    REM push the string length
     # peek
 
-    -- check if the string is empty
+    REM check if the string is empty
     # if
-        -- if not then push the next string and continue.
+        REM if not then push the next string and continue.
         1 + ; +
         nextcard goto
     end
 
-    -- pop the empty string and its length and return.
-    . . return
+    REM pop the empty string and its length and return.
+    . .
+end
 
-let spades: $61 end
-let hearts: $73 end
-let clubs: $78 end
-let diamonds: $7a end
+let cards data
+    REM spades
+    "\0972" "\0973" "\0974" "\0975" "\0976" "\0977" "\0978" "\0979" "\09710"
+    "\097J" "\097Q" "\097K" "\097A"
 
-cards: (
-    2 spades '2'
-    2 spades '3'
-    2 spades '4'
-    2 spades '5'
-    2 spades '6'
-    2 spades '7'
-    2 spades '8'
-    2 spades '9'
-    3 spades '10'
-    2 spades 'J'
-    2 spades 'Q'
-    2 spades 'K'
-    2 spades 'A'
+    REM hearts
+    "\1152" "\1153" "\1154" "\1155" "\1156" "\1157" "\1158" "\1159" "\11510"
+    "\115J" "\115Q" "\115K" "\115A"
 
-    2 hearts '2'
-    2 hearts '3'
-    2 hearts '4'
-    2 hearts '5'
-    2 hearts '6'
-    2 hearts '7'
-    2 hearts '8'
-    2 hearts '9'
-    3 hearts '10'
-    2 hearts 'J'
-    2 hearts 'Q'
-    2 hearts 'K'
-    2 hearts 'A'
+    REM clubs
+    "\1202" "\1203" "\1204" "\1205" "\1206" "\1207" "\1208" "\1209" "\12010"
+    "\120J" "\120Q" "\120K" "\120A"
 
-    2 clubs '2'
-    2 clubs '3'
-    2 clubs '4'
-    2 clubs '5'
-    2 clubs '6'
-    2 clubs '7'
-    2 clubs '8'
-    2 clubs '9'
-    3 clubs '10'
-    2 clubs 'J'
-    2 clubs 'Q'
-    2 clubs 'K'
-    2 clubs 'A'
+    REM diamonds
+    "\1222" "\1223" "\1224" "\1225" "\1226" "\1227" "\1228" "\1229" "\12210"
+    "\122J" "\122Q" "\122K" "\122A"
 
-    2 diamonds '2'
-    2 diamonds '3'
-    2 diamonds '4'
-    2 diamonds '5'
-    2 diamonds '6'
-    2 diamonds '7'
-    2 diamonds '8'
-    2 diamonds '9'
-    3 diamonds '10'
-    2 diamonds 'J'
-    2 diamonds 'Q'
-    2 diamonds 'K'
-    2 diamonds 'A'
-    0
-)
+    REM end of card string data
+    ""
+end

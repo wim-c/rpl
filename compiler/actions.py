@@ -1,10 +1,16 @@
 
 import tokens
 import blocks
+import rules
 
 
 # Class that implements all actions from the rules.txt definition.
 class Actions:
+    @classmethod
+    def parser_factory(cls):
+        actions = cls()
+        return rules.ParseStateMachine(actions)
+
     def __init__(self):
         super().__init__()
         self.then_marks = []
@@ -33,9 +39,9 @@ class Actions:
         return True
 
     def push_contif(self, optimizer):
-        optimizer.rewind()
+        contif = optimizer.rewind()
         mark = self.then_marks[-1]
-        beq = tokens.Command(tokens.Command.BEQ, mark=mark)
+        beq = tokens.Command(tokens.Command.BEQ, mark=mark).from_node(contif)
         optimizer.push_node(beq)
         return True
 
@@ -300,4 +306,28 @@ class Actions:
         gosub, return_ = optimizer.rewind(2)
         goto = tokens.Command(tokens.Command.GOTO, command=gosub).from_node(gosub)
         optimizer.push_node(goto)
+        return True
+
+    def mark_goto(self, optimizer):
+        goto = optimizer.peek()
+        return goto.has_data() and self.mark_final(optimizer)
+
+    def mark_final(self, optimizer):
+        mark, final = optimizer.peek(2)
+        if mark.marked is final:
+            return False
+        mark, final = optimizer.rewind(2)
+        mark.marked = final
+        optimizer.push_node(final)
+        optimizer.push_node(mark)
+        return True
+
+    def mark_mark(self, optimizer):
+        mark1, mark2 = optimizer.peek(2)
+        if mark1.marked is mark2.marked:
+            return False
+        mark1, mark2 = optimizer.rewind(2)
+        mark1.marked = mark2.marked
+        optimizer.push_node(mark2)
+        optimizer.push_node(mark1)
         return True

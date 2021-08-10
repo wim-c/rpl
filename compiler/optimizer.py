@@ -17,7 +17,7 @@ class ErrorMessage:
 
 
 class Optimizer:
-    def __init__(self, *, blocks=None, errors=None):
+    def __init__(self, *, blocks=None, errors=None, parser_factory):
         super().__init__()
         
         # All compile errors are collected here.
@@ -41,22 +41,18 @@ class Optimizer:
         # nodes to process onto this stack during the optimization phase.
         self.node_source = []
 
-        # Instantiate all possible optimizer code reduction actions.  These
-        # actions operate on the node and state stacks of this optimizer and
-        # can push more nodes to process.
-        reductions = actions.Actions()
-
         # The optimizer state machine that parses the node types of processed
         # nodes.  The parser will return actions to perform from the specified
         # reduction action based on the state transition triggered by a node
         # type.
-        self.parser = rules.ParseStateMachine(reductions)
+        self.parser_factory = parser_factory
+        self.parser = parser_factory()
 
     # Create an optimizer instance with a nested scope.  This means that all
     # symbols currently in scope are visible to the new optimizer, but it
     # cannot add to the current scope.
     def create_new(self):
-        opt = Optimizer(errors=self.errors)
+        opt = Optimizer(errors=self.errors, parser_factory=self.parser_factory)
         opt.scope = scope.Scope(opt, self.scope)
         return opt
 
