@@ -144,6 +144,9 @@ class Chars(Node):
         super().__init__()
         self.value = value
 
+    def __str__(self):
+        return f'\'{self.value}\''
+
     def assign_word_address(self, address):
         return address + len(self.value)
 
@@ -207,6 +210,20 @@ class Command(Node):
             self.mark = command.mark if mark is None else mark
             self.const = command.const if const is None else const
 
+    def __str__(self):
+        if (mark := self.mark) is not None:
+            if (address := mark.address) is not None:
+                return f'{self.type} {mark} ${address & 0xffff:x}'
+            else:
+                return f'{self.type} {self.mark}'
+        elif (const := self.const) is not None:
+            if (value := const.eval()) is not None:
+                return f'{self.type} {self.const} ${value & 0xffff:x}'
+            else:
+                return f'{self.type} {self.const}'
+        else:
+            return self.type
+
     def get_op(self):
         return self.ops[self.type]
 
@@ -214,7 +231,8 @@ class Command(Node):
         return self.mark is not None or self.const is not None
 
     def assign_address(self, address):
-        if self.type not in self.branches:
+        if self.type not in self.branches or \
+                (self.mark is None and self.const is None):
             return address + 1
         elif self.mark is not None and self.mark.address is not None:
             return self.assign_offset_address(address, self.mark.address)
@@ -314,6 +332,13 @@ class Expression(Node):
         super().__init__()
         self.nodes = nodes
 
+    def __str__(self):
+        expr = ' '.join(str(node) for node in self.nodes)
+        if (value := self.eval()) is None:
+            return expr
+        else:
+            return f'${value & 0xffff:x} ({expr})'
+
     def append(self, node):
         self.nodes.append(node)
 
@@ -346,6 +371,9 @@ class Float(Node):
     def __init__(self, value):
         super().__init__()
         self.value = value
+
+    def __str__(self):
+        return f'{self.value:.10g}'
 
     def set_data(self):
         if number >= 0:
@@ -404,9 +432,16 @@ class If(Node):
 class Integer(Node):
     type = 'word'
 
-    def __init__(self, value):
+    def __init__(self, value, *, hex=False):
         super().__init__()
         self.value = to_word(value)
+        self.hex = hex
+
+    def __str__(self):
+        if self.hex:
+            return f'${self.value & 0xffff:x}'
+        else:
+            return f'{self.value}'
 
     def assign_address(self, address):
         return self.assign_value_address(address, self.value)
@@ -480,6 +515,9 @@ class Mark(Node):
         # referenced (when in a data block).
         self.used = False
 
+    def __str__(self):
+        return 'mark'
+
     def resolve(self):
         return self.node.resolve_mark(self)
 
@@ -517,6 +555,9 @@ class Mark(Node):
 class Preamble(Node):
     type = 'preamble'
 
+    def __str__(self):
+        return 'call byte code interpreter'
+
     def assign_address(self, address):
         return address + 3
 
@@ -547,6 +588,9 @@ class Reference(Node):
 
     def __init__(self, mark):
         self.mark = mark
+
+    def __str__(self):
+        return f'{self.mark}'
 
     def assign_address(self, address):
         if self.mark.address is None:
@@ -604,6 +648,9 @@ class String(Node):
 
     def __init__(self, value):
         self.value = value
+
+    def __str__(self):
+        return f'"{self.value}"'
 
     def assign_word_address(self, address):
         return address + len(self.value) + 1

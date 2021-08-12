@@ -8,7 +8,7 @@ import parser
 
 
 class Compiler:
-    def compile(self, file_name):
+    def compile(self, file_name, *, org=0):
         # Try to open the source file and read contents.
         with open(file_name, 'r') as source_file:
             src = source_file.read()
@@ -29,6 +29,14 @@ class Compiler:
         # Phase 3: Optimize execution flow until a fixed point is reached.
         while (recompiled_blocks := self.recompile_blocks(compiled_blocks)) is not None:
             compiled_blocks = recompiled_blocks
+
+        # Phase 4: Assign addresses to all marks.  Repeat this until a fixed
+        # point is reached.  Note that the size in bytes of an instruction may
+        # depend on mark adresses and can therefore change if any mark address
+        # changes.
+        end_address = 0
+        while (new_end_address := self.assign_address(compiled_blocks, org)) != end_address:
+            end_address = new_end_address
 
         # Return the final code blocks and data blocks
         return compiled_blocks
@@ -83,3 +91,9 @@ class Compiler:
         # in the list because recompilation cannot introduce new code blocks or
         # new data blocks.
         return recompiled_blocks[0]
+
+    def assign_address(self, blocks, org):
+        address = org
+        for block in blocks:
+            address = block.assign_address(address)
+        return address

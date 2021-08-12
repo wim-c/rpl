@@ -218,14 +218,14 @@ class Actions:
     def word_unop(self, optimizer):
         word, command = optimizer.rewind(2)
         value = command.get_op()(word.value)
-        word = tokens.Integer(value).from_node(command)
+        word = tokens.Integer(value, hex=word.hex).from_node(command)
         optimizer.push_node(word)
         return True
 
     def word_word_binop(self, optimizer):
         word1, word2, command = optimizer.rewind(3)
         value = command.get_op()(word1.value, word2.value)
-        word = tokens.Integer(value).from_node(command)
+        word = tokens.Integer(value, hex=word1.hex or word2.hex).from_node(command)
         optimizer.push_node(word)
         return True
 

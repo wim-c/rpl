@@ -107,9 +107,9 @@ def make_number(t):
 def make_hex_number(t):
     t.type = 'INTEGER'
     if t.value[0] == '-':
-        t.value = tokens.Integer(-int(t.value[2:], 16)).from_token(t)
+        t.value = tokens.Integer(-int(t.value[2:], 16), hex=True).from_token(t)
     else:
-        t.value = tokens.Integer(int(t.value[1:], 16)).from_token(t)
+        t.value = tokens.Integer(int(t.value[1:], 16), hex=True).from_token(t)
     return t
 
 
