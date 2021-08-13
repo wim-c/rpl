@@ -14,6 +14,16 @@ def to_word(value):
 # file rules.txt for all reduction rules.  A node instance can copy source file
 # location data either from a PLY token or from another Node.
 class Node:
+    # Create a unique mark id for a specific node type.
+    @classmethod
+    def get_next_mark_id(cls):
+        cls.mark_id += 1
+        return cls.mark_id
+
+    # Create a unique mark name for a specific node type.
+    def make_mark_name(self):
+        return f'{self.get_type()}.{self.get_next_mark_id()}'
+
     def __init__(self):
         super().__init__()
         self.line = None
@@ -30,8 +40,8 @@ class Node:
         pass
 
     # Create a mark for this node as entry in a scope's symbol table.
-    def mark(self):
-        return Mark(self)
+    def mark(self, name=None):
+        return Mark(self, name)
 
     # Get a node value from a marked object in a scope's symbol table.
     def resolve_mark(self, mark):
@@ -128,6 +138,7 @@ class ByteData(Node):
 
 class Bytes(Node):
     type = 'bytes'
+    mark_id = 0
 
     def __init__(self, statements):
         super().__init__()
@@ -139,6 +150,7 @@ class Bytes(Node):
 
 class Chars(Node):
     type = 'chars'
+    mark_id = 0
 
     def __init__(self, value):
         super().__init__()
@@ -313,10 +325,17 @@ Command.ops = {
 # bytes in a compiled program.
 class Data(Node):
     type = 'data'
+    mark_id = 0
 
     def __init__(self, blocks):
         super().__init__()
         self.blocks = blocks
+
+    def make_mark_name(self):
+        if len(self.blocks) == 1:
+            return self.blocks[0].make_mark_name()
+        else:
+            return super().make_mark_name()
 
     # A data node does not define a new scope.  Move the symbols of all
     # contained word and byte blocks to an enclosing Statements node.
@@ -367,6 +386,7 @@ class Expression(Node):
 
 class Float(Node):
     type = 'float'
+    mark_id = 0
 
     def __init__(self, value):
         super().__init__()
@@ -487,11 +507,14 @@ class Macro(Node):
 class Mark(Node):
     type = 'mark'
 
-    def __init__(self, node):
+    def __init__(self, node, name):
         super().__init__()
 
         # The node that requested creation of this mark.
         self.node = node
+
+        # Name to use in compiled code listings.
+        self.name = name if name is not None else node.make_mark_name()
 
         # The location of this mark in the compiled program.
         self.address = None
@@ -516,7 +539,7 @@ class Mark(Node):
         self.used = False
 
     def __str__(self):
-        return 'mark'
+        return self.name
 
     def resolve(self):
         return self.node.resolve_mark(self)
@@ -564,6 +587,7 @@ class Preamble(Node):
 
 class Proc(Node):
     type = 'proc'
+    mark_id = 0
 
     def __init__(self, statements):
         super().__init__()
@@ -645,6 +669,7 @@ class Statements(Node):
 
 class String(Node):
     type = 'string'
+    mark_id = 0
 
     def __init__(self, value):
         self.value = value
@@ -677,6 +702,8 @@ class Token(Node):
     RPAREN = ')'
     THEN = 'THEN'
 
+    mark_id = 0
+
     def __init__(self, type):
         super().__init__()
         self.type = type
@@ -684,6 +711,7 @@ class Token(Node):
 
 class Words(Node):
     type = 'words'
+    mark_id = 0
 
     def __init__(self, statements):
         self.statements = statements

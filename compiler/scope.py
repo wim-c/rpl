@@ -5,24 +5,27 @@ class Scope:
 
     @classmethod
     def get_next_id(cls):
-        id = cls.next_id
         cls.next_id += 1
-        return id
+        return cls.next_id
 
     def __init__(self, optimizer, parent=None):
-        self.id = self.get_next_id()
+        self.id = None
         self.optimizer = optimizer
         self.parent = parent
         self.symbols = {}
         self.duplicates = set()
 
     def add_label(self, label):
-        mark = label.mark().from_node(label)
-        self.try_bind(label.symbol, mark)
+        symbol = label.symbol
+        name = self.get_mark_name(symbol.name)
+        mark = label.mark(name).from_node(label)
+        self.try_bind(symbol, mark)
 
     def add_definition(self, definition):
-        mark = definition.definition.mark().from_node(definition)
-        self.try_bind(definition.symbol, mark)
+        symbol = definition.symbol
+        name = self.get_mark_name(symbol.name)
+        mark = definition.definition.mark(name).from_node(definition)
+        self.try_bind(symbol, mark)
 
     def get_mark(self, symbol):
         name = symbol.name
@@ -33,6 +36,13 @@ class Scope:
 
         msg = f'Unresolved symbol \'{name}\''
         self.optimizer.add_error(symbol, msg)
+
+    def get_mark_name(self, name):
+        if self.parent is None:
+            return name
+        elif self.id is None:
+            self.id = self.get_next_id()
+        return f'{name}.{self.id}'
 
     def try_bind(self, symbol, mark):
         name = symbol.name
