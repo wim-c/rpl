@@ -67,8 +67,9 @@ class Node:
     # Assign address to this node's code and return the next address based on
     # the encoding of the mark (relative or absolute).
     def assign_offset_address(self, address, target):
-        if (target <= address and address - target <= 0xff) or \
-           (target >= address + 2 and target - address - 2 <= 0xff):
+        delta = target - address
+        if (delta <= 0 and delta >= -0xff) or \
+                (delta >= 2 and delta <= 0x101):
             # Relative encoding of target.
             return address + 2
         else:
@@ -83,7 +84,7 @@ class Node:
         elif -0x2000 <= value and value < 0x2000:
             return address + 2
         else:
-            return address + 3
+            return self.assign_offset_address(address, value % 0x10000)
 
     # Assign address to this node's data inside a DataBlock block.
     def assign_word_address(self, address):
@@ -116,6 +117,34 @@ class Node:
             stack.append(value)
             return True
 
+    def emit_offset(self, code, address, target, formatter):
+        delta = target - address
+        if delta <= 0 and delta >= -0xff:
+            return formatter.emit(address, bytes([code + 2, -delta]), self)
+        elif delta >= 2 and delta <= 0x101:
+            return formatter.emit(address, bytes([code + 3, delta - 2]), self)
+        else:
+            hi, lo = (target >> 8) & 0xff, target & 0xff
+            return formatter.emit(address, bytes([code + 1, hi, lo]), self)
+
+    def emit_value(self, address, formatter):
+        value = self.eval()
+        if -0x20 <= value and value < 0x20:
+            return formatter.emit(address, bytes([value & 0x3f]), self)
+        elif -0x2000 <= value and value < 0x2000:
+            return formatter.emit(address, bytes([((value >> 8) & 0x3f) | 0x40, value & 0xff]), self)
+        else:
+            return self.emit_offset(0x7f, address, value % 0x10000, formatter)
+
+    def emit_word_value(self, address, formatter):
+        value = self.eval()
+        hi, lo = (value >> 8) & 0xff, value & 0xff
+        return formatter.emit(address, bytes([lo, hi]), self)
+
+    def emit_byte_value(self, address, formatter):
+        value = self.eval()
+        return formatter.emit(address, bytes([value & 0xff]), self)
+
 
 # Concrete node types in alphabetical order.
 
@@ -134,6 +163,11 @@ class ByteData(Node):
     def set_reachable(self, marks_to_visit):
         for node in self.nodes:
             node.set_reachable(marks_to_visit)
+
+    def emit_word(self, address, formatter):
+        for node in self.nodes:
+            address = node.emit_byte(address, formatter)
+        return address
 
 
 class Bytes(Node):
@@ -161,6 +195,10 @@ class Chars(Node):
 
     def assign_word_address(self, address):
         return address + len(self.value)
+
+    def emit_word(self, address, formatter):
+        code = self.value.encode('utf-8')
+        return formatter.emit(address, code, self)
 
 
 # Command tokens have no auxiliary parameters.  The value attribute indicates
@@ -242,16 +280,19 @@ class Command(Node):
     def has_data(self):
         return self.mark is not None or self.const is not None
 
+    def eval_data(self):
+        if self.mark is not None:
+            return self.mark.address
+        elif self.const is not None:
+            return self.const.eval()
+
     def assign_address(self, address):
-        if self.type not in self.branches or \
-                (self.mark is None and self.const is None):
+        if not self.has_data(): 
             return address + 1
-        elif self.mark is not None and self.mark.address is not None:
-            return self.assign_offset_address(address, self.mark.address)
-        elif self.const is not None and (value := self.const.eval()) is not None:
-            return self.assign_offset_address(address, value)
-        else:
+        elif (data := self.eval_data()) is None:
             return address + 3
+        else:
+            return self.assign_offset_address(address, data)
 
     def set_reachable(self, marks_to_visit):
         if self.const is not None:
@@ -289,6 +330,15 @@ class Command(Node):
             stack[-1] = to_word(op(stack[-1], y))
         return True
 
+    def emit(self, address, formatter):
+        code = self.code[self.type]
+        if not self.has_data():
+            return formatter.emit(address, bytes([code]), self)
+        else:
+            data = self.eval_data()
+            return self.emit_offset(code, address, data, formatter)
+            
+
 Command.branches = {
     Command.BEQ,
     Command.BNE,
@@ -320,6 +370,62 @@ Command.ops = {
     Command.SUB: ops.binop_sub
 }
 
+def counter(start):
+    def inc(delta=1):
+        nonlocal start
+        value = start
+        start += delta
+        return value
+    return inc
+
+step = counter(0x83)
+
+Command.code = {
+    Command.ADD: step(),
+    Command.AND: step(),
+    Command.BEQ: step(3) - 1,
+    Command.BNE: step(3) - 1,
+    Command.CHR: step(),
+    Command.CLR: step(),
+    Command.DIV: step(),
+    Command.DROP: step(),
+    Command.DUP: step(),
+    Command.EQ: step(),
+    Command.FETCH: step(),
+    Command.FN: step(),
+    Command.FOR: step(),
+    Command.GEQ: step(),
+    Command.GET: step(),
+    Command.GOSUB: step(4),
+    Command.GOTO: step(4),
+    Command.GT: step(),
+    Command.INPUT: step(),
+    Command.INT: step(),
+    Command.LEQ: step(),
+    Command.LT: step(),
+    Command.MOD: step(),
+    Command.MUL: step(),
+    Command.NEQ: step(),
+    Command.NEW: step(),
+    Command.NEXT: step(),
+    Command.NOT: step(),
+    Command.ON: step(),
+    Command.OR: step(),
+    Command.OVER: step(),
+    Command.PEEK: step(),
+    Command.PICK: step(),
+    Command.POKE: step(),
+    Command.PRINT: step(),
+    Command.RETURN: step(),
+    Command.RND: step(),
+    Command.ROLL: step(),
+    Command.STOP: step(),
+    Command.STORE: step(),
+    Command.STR: step(),
+    Command.SUB: step(),
+    Command.SWAP: step(),
+    Command.SYS: step(),
+}
 
 # Suequence of data blocks that together form a single block of data
 # bytes in a compiled program.
@@ -383,6 +489,15 @@ class Expression(Node):
                 return
         return stack[0]
 
+    def emit(self, address, formatter):
+        return self.emit_value(address, formatter)
+
+    def emit_word(self, address, formatter):
+        return self.emit_word_value(address, formatter)
+
+    def emit_byte(self, address, formatter):
+        return self.emit_byte_value(address, formatter)
+
 
 class Float(Node):
     type = 'float'
@@ -395,7 +510,8 @@ class Float(Node):
     def __str__(self):
         return f'{self.value:.10g}'
 
-    def set_data(self):
+    def get_bytes(self):
+        number = self.value
         if number >= 0:
             # Mask out sign bit.
             mask = 0x7f
@@ -404,37 +520,37 @@ class Float(Node):
             mask = 0xff
             number = -number
 
+        # Map numbers below smallest representable magnitude to zero.
         if number < pow(2.0, -129):
-            # Map numbers below smallest representable number to zero.
-            data = bytes(5)
-        else:
-            # Determine exponent and rounded mantissa.
-            e = math.floor(math.log2(number)) + 1
-            m = math.trunc(number*pow(2.0, 32 - e) + 0.5)
+            return bytes(5)
 
-            # Correct possible mantissa overflow due to rounding.
-            if m == 0x1_0000_0000:
-                e += 1
-                m = 0x8000_0000
+        # Determine exponent and rounded mantissa.
+        e = math.floor(math.log2(number)) + 1
+        m = math.trunc(number*pow(2.0, 32 - e) + 0.5)
 
-            if e > 127:
-                # Replace number above maximum representable number by this
-                # maximum.
-                data = bytes([0xff, 0xff & mask, 0xff, 0xff, 0xff])
-            else:
-                # Get the four bytes of the mantissa.  Note that the sign bit
-                # (bit 7 of data[0]) will always be 1.
-                data = m.to_bytes(4, 'big')
+        # Correct possible mantissa overflow due to rounding.
+        if m == 0x1_0000_0000:
+            e += 1
+            m = 0x8000_0000
 
-                # Create the final five byte floating point number.  Center the
-                # exponent around 128 and mask out the sign bit for positive
-                # numbers.
-                data = bytes([128 + e, data[0] & mask, data[1], data[2], data[3]])
+        if e > 127:
+            # Replace number above maximum representable magnitude by the
+            # maximum or minimum number.
+            return bytes([0xff, 0xff & mask, 0xff, 0xff, 0xff])
 
-        self.data = data
+        # Get the four bytes of the mantissa.  Note that the sign bit (bit 7 of
+        # data[0]) will always be 1.
+        data = m.to_bytes(4, 'big')
+
+        # Create the final five byte floating point number.  Center the
+        # exponent around 128 and mask out the sign bit for positive numbers.
+        return bytes([128 + e, data[0] & mask, data[1], data[2], data[3]])
 
     def assign_word_address(self, address):
         return address + 5
+
+    def emit_word(self, address, formatter):
+        return formatter.emit(address, self.get_bytes(), self)
 
 
 class If(Node):
@@ -468,6 +584,15 @@ class Integer(Node):
 
     def eval(self):
         return self.value
+
+    def emit(self, address, formatter):
+        return self.emit_value(address, formatter)
+
+    def emit_word(self, address, formatter):
+        return self.emit_word_value(address, formatter)
+
+    def emit_byte(self, address, formatter):
+        return self.emit_byte_value(address, formatter)
 
 
 class Label(Node):
@@ -574,6 +699,15 @@ class Mark(Node):
             self.used = True
             self.block.set_reachable_from_index(self.index, marks_to_visit)
 
+    def emit(self, address, formatter):
+        return formatter.emit_label(address, self)
+
+    def emit_word(self, address, formatter):
+        return self.emit(address, formatter)
+
+    def emit_byte(self, address, formatter):
+        return self.emit(address, formatter)
+
 
 class Preamble(Node):
     type = 'preamble'
@@ -583,6 +717,9 @@ class Preamble(Node):
 
     def assign_address(self, address):
         return address + 3
+
+    def emit(self, address, formatter):
+        return formatter.emit(address, bytes([0x20, 0x00, 0xc8]), self)
 
 
 class Proc(Node):
@@ -621,7 +758,7 @@ class Reference(Node):
             # Assume  encoding with largest next address.
             return address + 3
         else:
-            return self.assign_offset_address(address, self.mark.address)
+            return self.assign_value_address(address, self.mark.address)
 
     def set_reachable(self, marks_to_visit):
         marks_to_visit.add(self.mark)
@@ -629,6 +766,15 @@ class Reference(Node):
 
     def eval(self):
         return self.mark.address
+
+    def emit(self, address, formatter):
+        return self.emit_value(address, formatter)
+
+    def emit_word(self, address, formatter):
+        return self.emit_word_value(address, formatter)
+
+    def emit_byte(self, address, formatter):
+        return self.emit_byte_value(address, formatter)
 
 
 # Sequence of statements that appear in a program, data definition (words or
@@ -678,7 +824,11 @@ class String(Node):
         return f'"{self.value}"'
 
     def assign_word_address(self, address):
-        return address + len(self.value) + 1
+        return address + min(len(self.value), 0xff) + 1
+
+    def emit_word(self, address, formatter):
+        data = bytes([min(len(self.value), 0xff)]) + self.value[:255].encode('utf-8')
+        return formatter.emit(address, data, self)
 
 
 class Symbol(Node):

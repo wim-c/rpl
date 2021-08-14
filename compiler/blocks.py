@@ -32,6 +32,11 @@ class CodeBlock(CompiledBlock):
         while len(marks_to_visit) > 0:
             marks_to_visit.pop().set_used(marks_to_visit)
 
+    def emit(self, address, formatter):
+        for node in self.nodes:
+            address = node.emit(address, formatter)
+        return address
+
 
 class DataBlock(CompiledBlock):
     def assign_address(self, address):
@@ -41,3 +46,8 @@ class DataBlock(CompiledBlock):
 
     def set_reachable_from_index(self, start, marks_to_visit):
         super().set_reachable_from_index(0, marks_to_visit)
+
+    def emit(self, address, formatter):
+        for node in self.nodes:
+            address = node.emit_word(address, formatter)
+        return address
