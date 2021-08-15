@@ -2,13 +2,14 @@
 import actions
 import blocks
 import flow_actions
+import formatter
 import lexer
 import optimizer
 import parser
 
 
 class Compiler:
-    def compile(self, file_name, *, org=0):
+    def compile(self, file_name, *, org=0, rt=0xc100, fmt=None):
         # Try to open the source file and read contents.
         with open(file_name, 'r') as source_file:
             src = source_file.read()
@@ -17,6 +18,7 @@ class Compiler:
         lex = lexer.Lexer(src)
         prs = parser.Parser()
         prg = prs.parse(lex)
+        prg.rt = rt
 
         # Phase 2: compile Program to set of code blocks and data blocks.  Use
         # the code reduction rules defined in the rules.txt file and
@@ -34,12 +36,12 @@ class Compiler:
         # point is reached.  Note that the size in bytes of an instruction may
         # depend on mark adresses and can therefore change if any mark address
         # changes.
-        end_address = 0
-        while (new_end_address := self.assign_address(compiled_blocks, org)) != end_address:
-            end_address = new_end_address
+        address = 0
+        while (new_address := self.assign_address(compiled_blocks, org)) != address:
+            address = new_address
 
-        # Return the final code blocks and data blocks
-        return compiled_blocks
+        # Emit byte code.
+        self.emit(compiled_blocks, org, fmt)
 
     def recompile_blocks(self, compiled_blocks):
         # Mark all Mark nodes that are reachable from the program start (first
@@ -97,3 +99,11 @@ class Compiler:
         for block in blocks:
             address = block.assign_address(address)
         return address
+
+    def emit(self, compiled_blocks, org, fmt):
+        if fmt is None:
+            fmt = formatter.PrettyPrinter()
+
+        address = org
+        for compiled_block in compiled_blocks:
+            address = compiled_block.emit(address, fmt)

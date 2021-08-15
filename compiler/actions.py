@@ -170,8 +170,8 @@ class Actions:
         optimizer.push_node(program.statements)
 
         # Begin the program with an implicit preamble to invoke the byte code
-        # interpreter.
-        preamble = tokens.Preamble()
+        # interpreter at the provided runtime address..
+        preamble = tokens.Preamble(program.rt)
         optimizer.push_node(preamble)
 
         # Create program level scope.

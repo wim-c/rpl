@@ -709,14 +709,18 @@ class Mark(Node):
 class Preamble(Node):
     type = 'preamble'
 
+    def __init__(self, rt):
+        self.rt = rt
+
     def __str__(self):
-        return 'call byte code interpreter'
+        return f'call interpreter at ${self.rt:04x}'
 
     def assign_address(self, address):
         return address + 3
 
     def emit(self, address, formatter):
-        return formatter.emit(address, bytes([0x20, 0x00, 0xc8]), self)
+        hi, lo = (self.rt >> 8) & 0xff, self.rt & 0xff
+        return formatter.emit(address, bytes([0x20, lo, hi]), self)
 
 
 class Proc(Node):
@@ -736,6 +740,7 @@ class Program(Node):
     def __init__(self, statements):
         super().__init__()
         self.statements = statements
+        self.rt = 0
 
 
 # A Reference is a node type that encodes a reference to a Mark node.  A symbol
