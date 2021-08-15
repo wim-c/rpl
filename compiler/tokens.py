@@ -79,7 +79,7 @@ class Node:
     # Assign address to this node's code and return the next address based on
     # the encoding of a signed word value.
     def assign_value_address(self, address, value):
-        if -0x20 <= value and value < 0x20:
+        if -0x40 <= value and value < 0x40:
             return address + 1
         elif -0x2000 <= value and value < 0x2000:
             return address + 2
@@ -129,12 +129,13 @@ class Node:
 
     def emit_value(self, address, formatter):
         value = self.eval()
-        if -0x20 <= value and value < 0x20:
-            return formatter.emit(address, bytes([value & 0x3f]), self)
+        if -0x40 <= value and value < 0x40:
+            return formatter.emit(address, bytes([value & 0x7f]), self)
         elif -0x2000 <= value and value < 0x2000:
-            return formatter.emit(address, bytes([((value >> 8) & 0x3f) | 0x40, value & 0xff]), self)
+            hi, lo = (value >> 8) & 0x3f, value & 0xff
+            return formatter.emit(address, bytes([hi | 0x80, lo]), self)
         else:
-            return self.emit_offset(0x7f, address, value % 0x10000, formatter)
+            return self.emit_offset(0xbf, address, value % 0x10000, formatter)
 
     def emit_word_value(self, address, formatter):
         value = self.eval()
@@ -377,7 +378,8 @@ def counter(start):
         return value
     return inc
 
-step = counter(0x83)
+# c0-c2 are used for word value push operations.
+step = counter(0xc3)
 
 Command.code = {
     Command.ADD: step(),
