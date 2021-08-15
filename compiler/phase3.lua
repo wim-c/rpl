@@ -141,6 +141,7 @@ local opcodes = {
     [ops.NEW] = o(),
     [ops.NEXT] = o(),
     [ops.NOT] = o(),
+    [ops.ON] = o(),
     [ops.OR] = o(),
     [ops.OVER] = o(),
     [ops.PEEK] = o(),

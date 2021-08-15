@@ -31,6 +31,7 @@ local operator = {
     NEW = 'new',
     NEXT = 'next',
     NOT = 'not',
+    ON = 'on',
     OR = 'or',
     OVER = ';',
     PEEK = 'peek',
