@@ -1,20 +1,19 @@
 
 start:
 "FIRST NUMBER: " print input tonumber &
-"SECOND NUMBER: " nlprint input tonumber &
-"NUMBERS: " nlprint ; str print ", " print # str printnl
-; ; < if "LESS" printnl end
-; ; <= if "LESS OR EQUAL" printnl end
-; ; = if "EQUAL" printnl end
-; ; <> if "NOT EQUAL" printnl end
-; ; > if "GREATER THAN" printnl end
->= if "GREATER EQUAL" printnl end
+"\13SECOND NUMBER: " print input tonumber &
+"\13NUMBERS: " print ; str$ print ", " print # str$ println
+; ; < if "LESS\13" print end
+; ; <= if "LESS OR EQUAL\13" print end
+; ; = if "EQUAL\13" print end
+; ; <> if "NOT EQUAL\13" print end
+; ; > if "GREATER THAN\13" print end
+>= if "GREATER EQUAL\13" print end
 
-"AGAIN?" print again: get # if then . again goto end
-nl 'Y' peek = if start goto end
-stop
+"AGAIN?" print again: get # 0 = if . again goto end
+nl print 'Y' peek = if start goto end
 
-tonumber:
+let tonumber def
     # peek 0 = if
         . 0
     then
@@ -23,18 +22,16 @@ tonumber:
         end
         '0' peek % poke topos & 0 % -
     end
-return
-    
-topos:
-    0 ; peek 1 for
-        10 *                -- str res
-        % 1 +               -- res str
-        % ; peek $f and +   -- str res
-    next
-    % .
-return
 
-let nl: lf print end
-let printnl: print nl end
-let nlprint: nl print end
-lf: (1 13)
+    let topos def
+        0 ; peek 1 for
+            10 *                REM str res
+            % 1 +               REM res str
+            % ; peek $f and +   REM str res
+        next
+        % .
+    end
+end
+    
+let println: print nl print end
+let nl "\13"

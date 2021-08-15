@@ -1,62 +1,63 @@
 
---
--- Adapted from benchmark program in Creative Computing Magazine, November
--- 1982 issue.  Changed from original benchmark by filling a  screen of 1000
--- characters at once, instead of per page for a total of 1024 characters.
--- Original code written by Gregory Yob.
---
+REM
+REM Adapted from benchmark program in Creative Computing Magazine, November
+REM 1982 issue.  Changed from original benchmark by filling a  screen of 1000
+REM characters at once, instead of per page for a total of 1024 characters.
+REM Original code written by Gregory Yob.
+REM
 
--- Push start jiffy clock values.
+REM Push start jiffy clock values.
 clock &
 
--- Perform benchmark.
+REM Perform benchmark.
 doall &
 
--- Push stop jiffy clock values.
+REM Push stop jiffy clock values.
 clock &
 
--- Clear the screen.
+REM Clear the screen.
 clear &
 
--- Print stop and start clock, both with their least significant byte first.
+REM Print stop and start clock, both with their least significant byte first.
 6 1 for
-    str print " " print
+    str$ print " " print
 next
-stop
 
--- Push three jiffy clock bytes, most significant first.
-clock:
-    141 peek 142 peek 143 peek return
+REM Push three jiffy clock bytes, most significant first.
+let clock def
+    141 peek 142 peek 143 peek
+end
 
--- Clear the screen.
-clear:
+REM Clear the screen.
+let clear def
     32768 # 999 + % for
-        -- Poke space to position.
+        REM Poke space to position.
         32 fn poke
     next
-    return
+end
 
--- Perform the benchmark.
-doall:
+REM Perform the benchmark.
+let doall def
     255 0 for
-        -- Push start character and fill four pages.
+        REM Push start character and fill four pages.
         fn doscreen &
     next
-    return
+end
 
--- Fill screen starting from given character.
--- (char -- )
-doscreen:
-    -- Loop over one screen.
-    -- (char -- char)
+REM Fill screen starting from given character.
+REM (char -- )
+let doscreen def
+    REM Loop over one screen.
+    REM (char -- char)
     32768 # 999 + % for
-        -- Poke character to screen.
+        REM Poke character to screen.
         # fn poke
 
-        -- Prepare next character to show.
+        REM Prepare next character to show.
         1 +
     next
 
-    -- Pop character and return
-    -- (char -- )
-    . return
+    REM Pop character and return
+    REM (char -- )
+    .
+end

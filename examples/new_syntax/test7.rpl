@@ -1,9 +1,8 @@
 
-"SOME RANDOM NUMBERS:" printnl
+"SOME RANDOM NUMBERS:" println
 10 1 for
-    rnd # chr print " " print str printnl
+    rnd # chr$ print " " print str$ println
 next
-stop
 
-let printnl: print nl print end
-nl: (1 13)
+let println: print nl print end
+let nl "\13"

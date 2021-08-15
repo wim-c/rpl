@@ -1,12 +1,9 @@
 max min for
-    "ITERATION " print iter @ str print ": " print
-    fn str print "\13" print
+    "ITERATION " print iter @ str$ print ": " print
+    fn str$ print "\13" print
     iter @ 1 + iter !
 next
-stop
 
-let
-    min = 5,
-    max = 25,
-    iter data 1
-end
+let min: 5 end
+let max: 25 end
+let iter [1]

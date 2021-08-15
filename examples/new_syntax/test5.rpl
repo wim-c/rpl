@@ -1,23 +1,23 @@
 
 start &
-stop
 
 let start def
     "FIRST NUMBER: " print input tonumber &
     "\13SECOND NUMBER: " print input tonumber &
 
     ; ; *
-    "\13PROD " print str print
+    "\13PROD " print str$ print
 
     ; ; /
-    " QUO " print str print
+    " QUO " print str$ print
 
     \
-    " MOD " print str print
+    " MOD " print str$ print
 
     "\13AGAIN?" print
+
 again:
-    get # if then
+    get # 0 = if
         . again goto
     end
     "\13" print

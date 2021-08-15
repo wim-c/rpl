@@ -1,49 +1,48 @@
 
--- display jiffy clock
+REM display jiffy clock
 showtime &
 
--- input time values
+REM input time values
 "Y: " print input tonumber & Y poke nl print
 "X: " print input tonumber & X poke nl print
 "A: " print input tonumber & A poke nl print
 
--- set time
+REM set time
 settim sys
 
--- and show time
+REM and show time
 showtime &
-stop
 
-showtime:
-    -- read jiffy clock in y;x;acc
+let showtime def
+    REM read jiffy clock in y;x;acc
     rdtim sys
 
-    -- display
-    "TIME: " print Y peek str print
-    ":" print X peek str print
-    ":" print A peek str print
-    "  (STATUS: " print P peek chr print ")" printnl
-return
+    REM display
+    "TIME: " print Y peek str$ print
+    colon print X peek str$ print
+    colon print A peek str$ print
+    "  (STATUS: " print P peek chr$ print ")\13" print
 
-tonumber:
+    let colon ":"
+end
+
+let tonumber def
     0 ; peek 1 for
-        10 *                -- str res
-        % 1 +               -- res str
-        % ; peek $f and +   -- str res
+        10 *                REM str$ res
+        % 1 +               REM res str$
+        % ; peek $f and +   REM str$ res
     next
-    % . return
+    % .
+end
 
--- Newline string.
-nl: (1 13)
+REM Newline string.
+let nl "\13"
 
--- Convenience macro to print string and newline.
-let printnl: print nl print end
-
--- Kernal entries to set and read the jiffy clock in y;x;acc.
+REM Kernal entries to set and read the jiffy clock in y;x;acc.
 let settim: $ffdb end
 let rdtim: $ffde end
 
--- Locations where SYS gets and stores the registers and status flags.
+REM Locations where SYS gets and stores the registers and status flags.
 let registers: $30c end
 let A: registers end
 let X: registers 1 + end

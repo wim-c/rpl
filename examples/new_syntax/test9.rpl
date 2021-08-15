@@ -1,21 +1,19 @@
 
 start:
     screen 999 + screen for
-        -- random \ or / screen character
+        REM random \ or / screen character
         rnd 1 and $4d +
 
-        -- poke to screen
+        REM poke to screen
         fn poke
     next
 
--- wait for key press
-key: get # if
-    $20 = if
+REM wait for key press
+key:
+    get # 0 = if
+        . key goto
+    then $20 = cont if
         start goto
     end
-    stop
-then
-    . key goto
-end
 
 let screen: $400 end

@@ -1,94 +1,95 @@
 
---
--- Adapted from benchmark program in Creative Computing Magazine, November
--- 1982 issue.  Original code written by Gregory Yob.
---
+REM
+REM Adapted from benchmark program in Creative Computing Magazine, November
+REM 1982 issue.  Original code written by Gregory Yob.
+REM
 
--- Push start jiffy clock values.
+REM Push start jiffy clock values.
 clock &
 
--- Perform benchmark.
+REM Perform benchmark.
 doall &
 
--- Push stop jiffy clock values.
+REM Push stop jiffy clock values.
 clock &
 
--- Clear the screen.
+REM Clear the screen.
 clear &
 
--- Print stop and start clock, both with their least significant byte first.
-str print " " print
-str print " " print
-str print " " print
-str print " " print
-str print " " print
-str print " " print
-stop
+REM Print stop and start clock, both with their least significant byte first.
+6 1 for
+    str$ print " " print
+next
 
--- Push three jiffy clock bytes, most significant first.
-clock:
-    141 peek 142 peek 143 peek return
+REM Push three jiffy clock bytes, most significant first.
+let clock def
+    141 peek 142 peek 143 peek
+end
 
--- Clear the screen.
-clear:
-    -- Setup space character.
-    -- ( -- spc)
+REM Clear the screen.
+let clear def
+    REM Setup space character.
+    REM ( -- spc)
     32
     
-    -- Loop over 1025 (!) bytes starting at screen RAM origin.
+    REM Loop over 1025 (!) bytes starting at screen RAM origin.
     32768 # 1024 + % for
-        -- Poke space to position.
+        REM Poke space to position.
         # fn poke
     next
     
-    -- Pop space character and return
-    -- (spc -- )
-    . return
+    REM Pop space character and
+    REM (spc -- )
+    .
+end
 
--- Perform the benchmark.
-doall:
-    255 0 for fn doscreen & . next return
+REM Perform the benchmark.
+let doall def
+    255 0 for fn doscreen & . next
+end
 
--- Fill screen with the tos character.  Does one page too many!
--- (char -- char)
-doscreen:
-    -- Initialize page address.
-    -- (char -- char address)
+REM Fill screen with the tos character.  Does one page too many!
+REM (char -- char)
+let doscreen def
+    REM Initialize page address.
+    REM (char -- char address)
     32768 256 - 
     
-    -- Repeat five (!) times.
+    REM Repeat five (!) times.
     4 0 for
-        -- Add one page to address.
-        -- (char address -- char address)
+        REM Add one page to address.
+        REM (char address -- char address)
         256 +
         
-        -- Duplicate nos and tos.
-        -- (char address -- char address char address)
+        REM Duplicate nos and tos.
+        REM (char address -- char address char address)
         ; ;
         
-        -- Process one page of the benchmark.
+        REM Process one page of the benchmark.
         doapage &
     next
     
-    -- Drop address and return.
-    -- (char address -- char)
-    . return
+    REM Drop address
+    REM (char address -- char)
+    .
+end
 
--- Fill a single page with a character.
--- (char address -- )
-doapage:
-    -- Loop over page (one byte too many).
-    -- (char address -- char)
+REM Fill a single page with a character.
+REM (char address -- )
+let doapage def
+    REM Loop over page (one byte too many).
+    REM (char address -- char)
     # 256 + % for
-        -- Increment character to show.
-        -- (char -- char)
+        REM Increment character to show.
+        REM (char -- char)
         1 +
         
-        -- Poke character at address.
-        -- (char -- char)
+        REM Poke character at address.
+        REM (char -- char)
         # fn poke
     next 
     
-    -- Drop character and return.
-    -- (char -- )
-    . return
+    REM Drop character and return.
+    REM (char -- )
+    .
+end

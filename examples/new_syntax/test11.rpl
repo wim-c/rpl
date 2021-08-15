@@ -1,66 +1,68 @@
 
--- cursor to initial position
+REM cursor to initial position
 show &
 
--- flash cursor
+REM flash cursor
 0 flash poke
 
--- await move
-move goto
+move:
+    REM get char
+    get # 0 = if
+        . move goto
+    then
+        REM show input
+        # put &
 
-update:
-    -- position cursor
+        REM move around with supported keys
+        # HKEY = cont if . left then
+        # JKEY = cont if . down then
+        # KKEY = cont if . up then
+        # LKEY = cont if . right then
+
+        REM ignore other input
+        . move goto
+    end
+
+    REM reposition cursor
     show &
 
-move:
-    -- get char
-    get
+    REM handle next move
+    move goto
 
-    -- show input or repeat if there is no input
-    # if # put & then . move goto end
-
-    -- move around
-    # HKEY = if . left goto end
-    # JKEY = if . down goto end
-    # KKEY = if . up goto end
-    # LKEY = if . right goto end
-
-    -- ignore input
-    . move goto
-
-left:
+let left:
     x @ # if 1 - x ! then . end
-    update goto
+end
 
-down:
+let down:
     y @ # 24 < if 1 + y ! then . end
-    update goto
+end
 
-up:
+let up:
     y @ # if 1 - y ! then . end
-    update goto
+end
 
-right:
+let right:
     x @ # 39 < if 1 + x ! then . end
-    update goto
+end
 
-put:
-    A poke chrout sys return
+let put def
+    A poke chrout sys
+end
 
--- position cursor
-show:
-    -- line in X
+REM position cursor
+let show def
+    REM line in X
     y @ X poke
 
-    -- column in Y
+    REM column in Y
     x @ Y poke
 
-    -- clear carry
+    REM clear carry
     0 P poke
 
-    -- set cursor
+    REM set cursor
     plot sys
-    return
+end
 
 let HKEY: $48 end
 let JKEY: $4a end
@@ -75,4 +77,5 @@ let X: $30d end
 let Y: $30e end
 let P: $30f end
 
-x: [0] y: [0]
+let x [0]
+let y [0]

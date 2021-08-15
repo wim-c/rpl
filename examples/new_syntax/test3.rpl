@@ -1,9 +1,6 @@
-REM
 REM A simple test program to renumber BASIC line numbers
-REM
 
 main &
-stop
 
 let main def
     REM Setup start line pointer and line number
@@ -26,11 +23,6 @@ loop:
     end
 end
 
-REM
-REM macros
-REM
-let
-    lineptr = $0801,    REM start of basic program
-    start   = 1000,     REM initial line number
-    inc     = 10        REM line number increment
-end
+let lineptr: $0801 end
+let start: 1000 end
+let inc: 10 end
