@@ -96,12 +96,12 @@ class Node:
         # Assume byte size.
         return address + 1
 
-    # Indicates that this node is reachable in the program.  Do not visit
+    # Indicates that this node is visited in the program.  Do not visit
     # references marks directly.  Instead, add referencesd marks to the
     # marks_to_visit set.  Return True if the node after this one should also
-    # be set as reachable (if present).
-    def set_reachable(self, marks_to_visit):
-        # Set next node reachable by default.
+    # be set as visited (if present).
+    def set_visited(self, marks_to_visit):
+        # Set next node visited by default.
         return True
 
     # Evaluate this node or return None if the node cannot be evaluated (yet).
@@ -160,9 +160,9 @@ class ByteData(Node):
             address = node.assign_byte_address(address)
         return address
 
-    def set_reachable(self, marks_to_visit):
+    def set_visited(self, marks_to_visit):
         for node in self.nodes:
-            node.set_reachable(marks_to_visit)
+            node.set_visited(marks_to_visit)
 
     def emit_word(self, address, formatter):
         for node in self.nodes:
@@ -294,28 +294,22 @@ class Command(Node):
         else:
             return self.assign_offset_address(address, data)
 
-    def set_reachable(self, marks_to_visit):
+    def set_visited(self, marks_to_visit):
         if self.const is not None:
-            # Set all parts of the const expression as reachable.
-            self.const.set_reachable(marks_to_visit)
-        elif (mark := self.mark) is None:
-            # Nothing more to do if no mark is set.
-            pass
-        elif (marked := mark.marked) is None:
-            # Visit mark later if it does not lead to a final command.
+            # Set all parts of the const expression as visited.
+            self.const.set_visited(marks_to_visit)
+        elif (mark := self.mark) is not None:
+            # Make sure so to visit the referenced mark later.
             marks_to_visit.add(mark)
-        elif self.type == self.GOSUB or self.type == self.GOTO:
-            # The gosub and goto commands use the marked code but do not branch
-            # to the mark.
-            mark.set_reachable(marks_to_visit)
-        elif self.type == self.BEQ or self.type == self.BNE:
-            if marked.get_type() == self.GOTO:
-                # The conditional command uses the marked code but will not
-                # branch to the mark.
-                mark.set_reachable(marks_to_visit)
-            else:
-                # Otherwise, the mark will be used.
-                marks_to_visit.add(mark)
+
+            if (marked := mark.marked) is None:
+                # Mark is used as a target since it is not followed by a final
+                # command.
+                mark.used = True
+            elif self.type in self.conditionals and marked.type != self.GOTO:
+                # The mark is used since A conditional branch can only short
+                # circuit a jump.
+                mark.used = True
 
         return self.type not in self.finals
 
@@ -344,6 +338,11 @@ Command.branches = {
     Command.BNE,
     Command.GOSUB,
     Command.GOTO
+}
+
+Command.conditionals = {
+    Command.BEQ,
+    Command.BNE
 }
 
 Command.finals = {
@@ -477,9 +476,9 @@ class Expression(Node):
         else:
             return self.assign_value_address(address, value)
 
-    def set_reachable(self, marks_to_visit):
+    def set_visited(self, marks_to_visit):
         for node in self.nodes:
-            node.set_reachable(marks_to_visit)
+            node.set_visited(marks_to_visit)
         return True
 
     def eval(self):
@@ -657,7 +656,7 @@ class Mark(Node):
 
         # The program execution can reach this mark (when in a code block) or
         # the marked data can be accessed (when in a data block).
-        self.reachable = False
+        self.visited = False
 
         # This mark is a branch target (when in a code block) or explicitly
         # referenced (when in a data block).
@@ -682,22 +681,20 @@ class Mark(Node):
     def set_block_index(self, block, index):
         self.block = block
         self.index = index
-        self.reachable = False
+        self.visited = False
         self.used = False
 
-    def set_reachable(self, marks_to_visit):
-        if self.reachable:
-            # Only continue passed this mark if it was not set as reachable
+    def set_visited(self, marks_to_visit):
+        if self.visited:
+            # Only continue passed this mark if it was not set as visited
             # before.
             return False
         else:
-            self.reachable = True
+            self.visited = True
             return True
 
-    def set_used(self, marks_to_visit):
-        if not self.used:
-            self.used = True
-            self.block.set_reachable_from_index(self.index, marks_to_visit)
+    def visit(self, marks_to_visit):
+        self.block.set_visited_from_index(self.index, marks_to_visit)
 
     def emit(self, address, formatter):
         return formatter.emit_label(address, self)
@@ -760,7 +757,8 @@ class Reference(Node):
         else:
             return self.assign_value_address(address, self.mark.address)
 
-    def set_reachable(self, marks_to_visit):
+    def set_visited(self, marks_to_visit):
+        self.mark.used = True
         marks_to_visit.add(self.mark)
         return True
 

@@ -12,10 +12,10 @@ class CompiledBlock:
             if isinstance(node, tokens.Mark):
                 node.set_block_index(self, index)
 
-    def set_reachable_from_index(self, start, marks_to_visit):
+    def set_visited_from_index(self, start, marks_to_visit):
         self.reachable = True
         for index in range(start, len(self.nodes)):
-            if not self.nodes[index].set_reachable(marks_to_visit):
+            if not self.nodes[index].set_visited(marks_to_visit):
                 break
 
 
@@ -27,10 +27,10 @@ class CodeBlock(CompiledBlock):
 
     def visit(self):
         marks_to_visit = set()
-        self.set_reachable_from_index(0, marks_to_visit)
+        self.set_visited_from_index(0, marks_to_visit)
 
         while len(marks_to_visit) > 0:
-            marks_to_visit.pop().set_used(marks_to_visit)
+            marks_to_visit.pop().visit(marks_to_visit)
 
     def emit(self, address, formatter):
         for node in self.nodes:
@@ -44,8 +44,8 @@ class DataBlock(CompiledBlock):
             address = node.assign_word_address(address)
         return address
 
-    def set_reachable_from_index(self, start, marks_to_visit):
-        super().set_reachable_from_index(0, marks_to_visit)
+    def set_visited_from_index(self, start, marks_to_visit):
+        super().set_visited_from_index(0, marks_to_visit)
 
     def emit(self, address, formatter):
         for node in self.nodes:
