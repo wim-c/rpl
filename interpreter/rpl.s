@@ -206,6 +206,7 @@ push15      cmp #$40        ; Check sign.
 !word exec_new
 !word exec_next
 !word exec_not
+!word exec_on
 !word exec_or
 !word exec_over
 !word exec_peek
@@ -711,7 +712,7 @@ exec_fetch      inx
                 sta ea
                 lda pshi,x
                 sta ea+1
-                sty savey       ; Save y register.
+fetch_ea        sty savey       ; Save y register.
                 ldy #0          ; Push lo byte at ea.
                 lda (ea),y
                 sta pslo,x
@@ -925,6 +926,26 @@ exec_not        inx
                 sta pshi,x
                 dex
                 jmp decode      ; Decode next opcode.
+
+;
+; Multiply nos by two, add to tos, and fetch word.
+;
+exec_on         inx
+                lda pslo+1,x    ; Store 2*tos in ea
+                asl
+                sta ea
+                lda pshi+1,x
+                rol
+                sta ea+1
+                clc
+                lda pslo,x      ; Add tos to ea
+                adc ea
+                sta ea
+                lda pshi,x
+                adc ea+1
+                sta ea+1
+                inx
+                jmp fetch_ea    ; Fetch word at ea
 
 ;
 ; Pop tos and logical or it with nos.
