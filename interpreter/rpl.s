@@ -931,7 +931,7 @@ exec_not        inx
 ; Multiply nos by two, add to tos, and fetch word.
 ;
 exec_on         inx
-                lda pslo+1,x    ; Store 2*tos in ea
+                lda pslo+1,x    ; Store 2*nos in ea
                 asl
                 sta ea
                 lda pshi+1,x
