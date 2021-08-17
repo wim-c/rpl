@@ -79,9 +79,9 @@ class Node:
     # Assign address to this node's code and return the next address based on
     # the encoding of a signed word value.
     def assign_value_address(self, address, value):
-        if -0x40 <= value and value < 0x40:
+        if -0x20 <= value and value < 0x20:
             return address + 1
-        elif -0x2000 <= value and value < 0x2000:
+        elif -0x4000 <= value and value < 0x4000:
             return address + 2
         else:
             return self.assign_offset_address(address, value % 0x10000)
@@ -129,11 +129,11 @@ class Node:
 
     def emit_value(self, address, formatter):
         value = self.eval()
-        if -0x40 <= value and value < 0x40:
-            return formatter.emit(address, bytes([value & 0x7f]), self)
-        elif -0x2000 <= value and value < 0x2000:
-            hi, lo = (value >> 8) & 0x3f, value & 0xff
-            return formatter.emit(address, bytes([hi | 0x80, lo]), self)
+        if -0x20 <= value and value < 0x20:
+            return formatter.emit(address, bytes([(value & 0x3f) | 0x80]), self)
+        elif -0x4000 <= value and value < 0x4000:
+            hi, lo = (value >> 8) & 0x7f, value & 0xff
+            return formatter.emit(address, bytes([hi, lo]), self)
         else:
             return self.emit_offset(0xbf, address, value % 0x10000, formatter)
 
@@ -198,7 +198,7 @@ class Chars(Node):
         return address + len(self.value)
 
     def emit_word(self, address, formatter):
-        code = self.value.encode('utf-8')
+        code = self.value.encode('latin-1')
         return formatter.emit(address, code, self)
 
 
@@ -386,6 +386,7 @@ Command.code = {
     Command.AND: step(),
     Command.BEQ: step(3) - 1,
     Command.BNE: step(3) - 1,
+    Command.GOSUB: step(4),
     Command.CHR: step(),
     Command.CLR: step(),
     Command.DIV: step(),
@@ -397,7 +398,6 @@ Command.code = {
     Command.FOR: step(),
     Command.GEQ: step(),
     Command.GET: step(),
-    Command.GOSUB: step(4),
     Command.GOTO: step(4),
     Command.GT: step(),
     Command.INPUT: step(),
@@ -832,7 +832,7 @@ class String(Node):
         return address + min(len(self.value), 0xff) + 1
 
     def emit_word(self, address, formatter):
-        data = bytes([min(len(self.value), 0xff)]) + self.value[:255].encode('utf-8')
+        data = bytes([min(len(self.value), 0xff)]) + self.value[:255].encode('latin-1')
         return formatter.emit(address, data, self)
 
 

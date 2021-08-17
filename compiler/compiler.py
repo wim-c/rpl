@@ -107,3 +107,5 @@ class Compiler:
         address = org
         for compiled_block in compiled_blocks:
             address = compiled_block.emit(address, fmt)
+
+        fmt.emit_end(address)

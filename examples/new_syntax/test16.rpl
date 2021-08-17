@@ -1,0 +1,11 @@
+
+14 0 for
+    fn # if
+        " " print
+    end
+    3 \ [
+        "YABBA!"
+        "DABBA!"
+        "DOO!"
+    ] on print
+next
