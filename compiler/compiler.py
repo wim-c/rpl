@@ -9,7 +9,7 @@ import parser
 
 
 class Compiler:
-    def compile(self, file_name, *, org=0, rt=0xc100, fmt=None):
+    def compile(self, file_name, org, rt, fmt):
         # Try to open the source file and read contents.
         with open(file_name, 'r') as source_file:
             src = source_file.read()
@@ -36,12 +36,18 @@ class Compiler:
         # point is reached.  Note that the size in bytes of an instruction may
         # depend on mark adresses and can therefore change if any mark address
         # changes.
-        address = 0
+        org = fmt.emit_begin(org)
+
+        address = org
         while (new_address := self.assign_address(compiled_blocks, org)) != address:
             address = new_address
 
         # Emit byte code.
-        self.emit(compiled_blocks, org, fmt)
+        address = org
+        for compiled_block in compiled_blocks:
+            address = compiled_block.emit(address, fmt)
+
+        fmt.emit_end(org, address)
 
     def recompile_blocks(self, compiled_blocks):
         # Mark all Mark nodes that are reachable from the program start (first
@@ -99,13 +105,3 @@ class Compiler:
         for block in blocks:
             address = block.assign_address(address)
         return address
-
-    def emit(self, compiled_blocks, org, fmt):
-        if fmt is None:
-            fmt = formatter.PrettyPrinter()
-
-        address = org
-        for compiled_block in compiled_blocks:
-            address = compiled_block.emit(address, fmt)
-
-        fmt.emit_end(address)
