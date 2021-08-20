@@ -20,7 +20,7 @@ class Format:
         else:
             self.stream = open(self.output, 'w')
 
-    def open_binary(self):
+    def open_binary(self, org):
         self.stream = open(self.output, 'wb')
 
         if self.prg:
@@ -64,7 +64,7 @@ class PrintFormat(Format):
 
 class BinFormat(Format):
     def emit_begin(self, org):
-        self.open_binary()
+        self.open_binary(org)
         return org
 
     def emit(self, address, code, node):
