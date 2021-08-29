@@ -516,49 +516,44 @@ exec_clr        stx savex       ; Save x register.
 ; Routine to compute quotient and remainder of abs(nos) divided by abs(tos).
 ; Drops tos.  The quotient and remainder are left in lw and hw respectively.
 ;
-; The entry point divmod_tos can be used if only the numerator needs to be
-; taken from tos and the denominator is already stored in ea.  In this case tos
-; remains (unchanged) on the stack,
-;
-; The entry point divmod_only can be used when both numerator and denominator
-; are already stored in lw and ea respectively.
-;
 divmod          inx             ; Store denominator in ea.
                 lda pslo,x
                 sta ea
                 lda pshi,x
                 sta ea+1
-                bpl divmod_tos  ; Branch if non-negative.
-                sec             ; Negate ea.
+                bpl +           ; Branch if non-negative.
+                sec             ; Negate denominator in ea.
                 lda #0
                 sbc ea
                 sta ea
                 lda #0
                 sbc ea+1
                 sta ea+1
-divmod_tos      inx
++               inx
                 lda pslo,x      ; Store numerator in lw.
                 sta lw
                 lda pshi,x  
                 sta lw+1
-                bpl divmod_only ; Branch if non-negative.
-                sec             ; Negate lw.
-                lda #0
+                bpl +           ; Branch if non-negative.
+                clc             ; Compute denominator - numerator - 1 in lw
+                lda ea
                 sbc lw
                 sta lw
-                lda #0
+                lda ea+1
                 sbc lw+1
                 sta lw+1
-divmod_only     lda #0          ; Clear hw.
++               lda #0          ; Clear hw.
                 sta hw
                 sta hw+1
                 stx savex       ; Save registers.
                 sty savey
 
                 ; Division loop.
-                ldx #16         ; Loop counter.
--               asl lw          ; Asl dword hw;lw.
+                ldx #17         ; Loop counter.
+-               rol lw          ; shift hw;lw and shift quotient bit in.
                 rol lw+1
+                dex             ; Only the first 16 iterations contribute to
+                beq +           ; the quotient computation.
                 rol hw
                 rol hw+1
                 sec             ; Compute hw-ea and store in a;y.
@@ -567,15 +562,13 @@ divmod_only     lda #0          ; Clear hw.
                 tay
                 lda hw+1
                 sbc ea+1
-                bcc +           ; Branch if ea > hw.
+                bcc -           ; Next iteration if ea > hw.
                 sty hw          ; Store difference in hw.
                 sta hw+1
-                inc lw          ; Shift result into lw.
-+               dex             ; Repeat 16 times.
-                bne -
+                bcs -           ; Branch to next iteration.
 
                 ; Finish up.
-                ldx savex       ; Restore registers.
++               ldx savex       ; Restore registers.
                 ldy savey
                 rts
 
@@ -828,11 +821,11 @@ exec_mod        jsr divmod      ; Compute quotient and remainder.
                 lda hw+1        ; Push hi byte of remainder.
                 sta pshi+1,x
                 jmp decode      ; Decode next opcode.
-+               sec
-                lda #0          ; Push low byte of negated remainder.
++               clc             ; Correct remainder r as abs(d) - r - 1.
+                lda ea          ; abs(d) is in ea, r is in hw.
                 sbc hw
                 sta pslo+1,x
-                lda #0          ; Push hi byte of negated remained.
+                lda ea+1
                 sbc hw+1
                 sta pshi+1,x
                 jmp decode      ; Decode next opcode.

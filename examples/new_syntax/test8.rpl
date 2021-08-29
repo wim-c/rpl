@@ -8,7 +8,7 @@ showchar:
     rnd
 
     REM Determine random screen position.
-    rnd $7fff and 1000 \ screen +
+    rnd 1000 \ screen +
 
     REM poke random character into random location
     poke

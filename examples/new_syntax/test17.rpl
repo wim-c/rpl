@@ -9,7 +9,7 @@ let main:
     REM repeatedly draw and print a random card
     51 0 for
         REM get random index between 0 and number of cards left
-        rnd $7fff and 52 fn - \
+        rnd 52 fn - \
             
         REM fetch and remove card index from stack 
         1 + $

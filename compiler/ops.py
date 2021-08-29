@@ -14,11 +14,12 @@ def binop_sub(x, y):
     return x - y
 
 def binop_div(x, y):
-    if y == 0:
-        return 1 if x < 0 else -1
-    else:
-        q, r = divmod(x, y)
-        return q if r == 0 or q >= 0 else q + 1
+    ay = abs(y)
+    ax = x if x >= 0 else ay - x - 1
+
+    q = ax//ay if ay != 0 else -1
+
+    return q if (x < 0) == (y < 0) else -q
 
 def binop_lt(x, y):
     return -1 if x < y else 0
@@ -39,11 +40,12 @@ def binop_geq(x, y):
     return -1 if x >= y else 0
 
 def binop_mod(x, y):
-    if y == 0:
-        return x
-    else:
-        q, r = divmod(x, y)
-        return r if r == 0 or q >= 0 else r - y
+    ay = abs(y)
+    ax = x if x >= 0 else ay - x - 1
+
+    r = ax%ay if ay != 0 else ax
+
+    return r if x >= 0 else ay - r - 1
 
 def binop_and(x, y):
     return x & y

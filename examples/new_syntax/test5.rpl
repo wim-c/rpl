@@ -1,7 +1,7 @@
 
-start &
+main &
 
-let start def
+let main def
     "FIRST NUMBER: " print input tonumber &
     "\13SECOND NUMBER: " print input tonumber &
 
@@ -23,19 +23,26 @@ again:
     "\13" print
 
     'Y' peek = if
-        start goto
+        main &
     end
 end
 
 let tonumber def
-    0 ; peek # if               REM str res len
-        1 for
+    # peek 0 = if
+        . 0
+    then # 1 + # peek '-' peek <> cont if
+        . topos &
+    then
+        '0' peek % poke
+        topos & 0 % -
+    end
+
+    let topos def
+        0 ; peek 1 for
             10 *                REM str res
             % 1 +               REM res str
             % ; peek $f and +   REM str res
         next
-    then
-        .                       REM str res
+        % .
     end
-    % .                         REM res
 end

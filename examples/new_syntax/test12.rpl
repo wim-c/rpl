@@ -11,7 +11,7 @@ let main def
 
 draw:
     REM get random index between 0 and number of cards
-    rnd $7fff and ; \
+    rnd ; \
         
     REM fetch and remove card from stack 
     2 + $
