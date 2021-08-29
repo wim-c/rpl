@@ -1157,104 +1157,86 @@ wrt_done        rts
 
 ;
 ; Convert signed word in tos to string.  Drop tos and push address of result.
+;   hw, hw+1 : Scratch area.
+;   lw       : Next digit (0 - 9).
+;   lw+1     : Leading zero flag.  Bit 7 high means leading zero.
 ;
-exec_str        lda #0          ; Clear binary coded decimal value.
-                sta lw
-                sta lw+1
+exec_str        inx
+                stx savex       ; Save x register.
+                sty savey       ; Save y register.
+                lda pslo,x      ; Copy tos to hw
                 sta hw
-                inx             ; Copy tos to ea.
-                lda pslo,x
-                sta ea
                 lda pshi,x
-                sta ea+1
+                sta hw+1
                 bpl +           ; Branch if tos is non-negative.
-                sec             ; Negate ea.
+                sec             ; Negate hw to make it positive.
                 lda #0
-                sbc ea
-                sta ea
-                lda #0
-                sbc ea+1
-                sta ea+1
-+               sty savey       ; Save y register
-                sed             ; Enable decimal arithmetic.
-
-                ; Check if number is zero or at most $ff.
-                bne +           ; Branch if hi byte is non-zero.
-                lda ea
-                bne ++          ; Branch if lo byte is non-zero.
-                cld             ; Otherwise skip conversion and output '0'.
-                lda #'0'
-                sta INBUF+1
-                ldy #1          ; String length in y.
-                bne push_str    ; Branch always.
-
-                ; Loop over bit15 - bit8.  The maximal decimal value that can
-                ; be reached is 128.  The third decimal digit is determined by
-                ; the last iteration only.
-+               ldy #8
--               asl ea+1        ; Shift next highest bit into the carry.
-                lda lw          ; Double the decimal value and add carry.
-                adc lw
-                sta lw
-                dey
-                bne -           ; Repeat for all bits of hi byte.
-                rol lw+1        ; Carry holds the third decimal digit.
-
-                ; Loop over bit7 - bit1.  The maximal decimal value that can be
-                ; reached is 16384.  The fifth decimal digit is determined by
-                ; the last iteration only.
-++              ldy #7
--               asl ea          ; Shift the next highest bit into the carry.
-                lda lw          ; Double the decimal value and add carry.
-                adc lw
-                sta lw
-                lda lw+1
-                adc lw+1
-                sta lw+1
-                dey
-                bne -           ; Repeat for seven most significant bits.
-                rol hw          ; Carry holds the fifth decimal digit.
-
-                ; Handle bit0
-                asl ea
-                lda lw
-                adc lw
-                sta lw
-                lda lw+1
-                adc lw+1
-                sta lw+1
-                lda hw
-                adc hw
+                sbc hw
                 sta hw
-
-                ; Binary coded decimal now in hw;lw
-                cld             ; Disable decimal arithmetic.
-                ldy #0          ; Initialize String length counter.
-                lda pshi,x      ; Output sign if negative.
-                bpl +
-                lda #'-'
+                lda #0
+                sbc hw+1
+                sta hw+1
+                lda #'-'        ; Output minus sign.
                 sta INBUF+1
-                iny
-+               stx savex       ; Save x register.
-                lda hw          ; Output decimal digits but skip leading 0's.
-                bne outdig5
-                lda lw+1
-                bne outdig34
-                beq outdig12    ; Branch alwys.
-outdig5         jsr wrt_bcd_lo
-                lda lw+1
-outdig34        jsr wrt_bcd
-outdig12        lda lw
-                jsr wrt_bcd
-                ldx savex       ; Restore x register.
-push_str        sty INBUF       ; Set string length.
+                ldx #1          ; Set initial result string length.
+                bne ++          ; Branch always.
++               ldx #0          ; Empty result string.
+++              lda #$80        ; Set leading zero flag.
+                sta lw+1
+
+                ; Digit loop.
+                ldy #3          ; Index in power of ten table.
+--              lda #0          ; Initialize next digit.
+                sta lw
+
+                ; Reduce loop.  Subtract power of 10 while possible.
+                lda hw          ; Compare remainder with power of 10.
+-               cmp pow10lo,y
+                lda hw+1
+                sbc pow10hi,y
+                bcc +           ; Branch if smaller.
+                sta hw+1        ; Subtract power of 10 from remainder.
+                lda hw
+                sbc pow10lo,y
+                sta hw
+                inc lw          ; Increment digit.
+                bne -           ; Branch always.
+
+                ; Check for leading zero.
++               lda lw          ; Check digit.
+                bne +           ; Output if it is non-zero.
+                bit lw+1        ; Otherwise check leading zero flag.
+                bmi ++          ; Skip digit if it is a leading zero.
+
+                ; Output digit.
++               sta lw+1        ; Reset leading zero flag (digit < $80).
+                ora #'0'        ; Output ASCII digit.
+                inx
+                sta INBUF,x
+                
+                ; Next lower power of ten iteration.
+++              dey
+                bpl --
+
+                ; Output last digit (remainder in hw) and set string length.
+                lda hw
+                ora #'0'
+                inx
+                sta INBUF,x
+                stx INBUF
+
+                ; Push result.
                 ldy savey       ; Restore y register.
-                lda #<INBUF     ; Push address of string.
+                ldx savex       ; Restore x register.
+                lda #<INBUF     ; Push INBUF as address of string result.
                 sta pslo,x
                 lda #>INBUF
                 sta pshi,x
                 dex
                 jmp decode      ; Decode next opcode.
+
+pow10lo         !byte <10, <100, <1000, <10000
+pow10hi         !byte >10, >100, >1000, >10000
 
 ;
 ; Drop tos and subtract it from nos.
