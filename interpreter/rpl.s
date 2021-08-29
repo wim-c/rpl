@@ -1130,31 +1130,6 @@ exec_store      inx             ; Pop tos and store into ea.
                 ldy savey       ; Restore y register.
                 jmp decode      ; Decode next opcode.
 
-
-;
-; Helper routine to output a non-zero binary coded decimal byte to the buffer
-; starting at INBUF+1.  Skip possible leading zero in hi nibble.  Byte to write
-; in a, string length in y.  Clobbers x.
-;
-wrt_bcd         tax             ; Save a to x.
-                lsr             ; Shift hi nibble down.
-                lsr
-                lsr
-                lsr
-                bne +           ; Check for leading zero.
-                cpy #0
-                beq ++          ; Branch to skip leading zero.
-+               ora #'0'        ; Convert to ASCII and add to output.
-                sta INBUF+1,y
-                iny
-++              txa             ; Restore a from x.
-wrt_bcd_lo      and #$f         ; Mask out hi nibble.
-                ora #'0'        ; Convert to ASCII.
-                sta INBUF+1,y   ; Store in buffer.
-                iny             ; Increment buffer offset.
-wrt_done        rts
-
-
 ;
 ; Convert signed word in tos to string.  Drop tos and push address of result.
 ;   hw, hw+1 : Scratch area.
