@@ -126,7 +126,12 @@ class Actions:
         
     def push_label(self, optimizer):
         label = optimizer.rewind()
-        mark = optimizer.scope.get_mark(label.symbol)
+
+        # A label definition is not a referecne.  Do not report an error if the
+        # mark is not found.  This can happen when a label has more than one
+        # definitions, which will be reported as an error when the label is
+        # defined.
+        mark = optimizer.scope.get_mark(label.symbol, required=False)
 
         if mark is not None:
             optimizer.push_node(mark)

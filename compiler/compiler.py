@@ -9,24 +9,46 @@ import parser
 
 
 class Compiler:
+    def __init__(self):
+        super().__init__()
+        self.errors = []
+
+    def add_os_error(self, e):
+        self.errors.append(f'{e.strerror}: {e.filename}.')
+
     def compile(self, file_name, org, rt, fmt):
         # Try to open the source file and read contents.
-        with open(file_name, 'r') as source_file:
-            src = source_file.read()
+        try:
+            with open(file_name, 'r') as source_file:
+                src = source_file.read()
+        except OSError as e:
+            # Source file could not be read.
+            self.add_os_error(e)
+            return
 
         # Phase 1: parse source file contents to Program node.
-        lex = lexer.Lexer(src)
-        prs = parser.Parser()
+        lex = lexer.Lexer(src, errors=self.errors)
+        prs = parser.Parser(errors=self.errors)
         prg = prs.parse(lex)
+        if prg is None:
+            # Errors encountered during lexing and parsing and no Program node
+            # could be created as a result of those.
+            return
+
+        # Set the runtime address for the Program node.
         prg.rt = rt
 
         # Phase 2: compile Program to set of code blocks and data blocks.  Use
         # the code reduction rules defined in the rules.txt file and
         # implemented by the Actions class.
         compiled_blocks = []
-        opt = optimizer.Optimizer(parser_factory=actions.Actions.parser_factory)
+        opt = optimizer.Optimizer(errors=self.errors, parser_factory=actions.Actions.parser_factory)
         opt.push_node(prg)
         opt.compile_to(blocks.CodeBlock, compiled_blocks)
+
+        # If there are any errors at this point then give up.
+        if len(self.errors) > 0:
+            return
 
         # Phase 3: Optimize execution flow until a fixed point is reached.
         while (recompiled_blocks := self.recompile_blocks(compiled_blocks)) is not None:
@@ -36,7 +58,11 @@ class Compiler:
         # point is reached.  Note that the size in bytes of an instruction may
         # depend on mark adresses and can therefore change if any mark address
         # changes.
-        org = fmt.emit_begin(org)
+        try:
+            org = fmt.emit_begin(org)
+        except OSError as e:
+            self.add_os_error(e)
+            return
 
         address = org
         while (new_address := self.assign_address(compiled_blocks, org)) != address:

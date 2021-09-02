@@ -859,9 +859,13 @@ class Token(Node):
 
     mark_id = 0
 
-    def __init__(self, type):
+    def __init__(self, type, value=None):
         super().__init__()
         self.type = type
+        self.value = type if value is None else value
+
+    def __str__(self):
+        return self.value
 
 
 class Words(Node):

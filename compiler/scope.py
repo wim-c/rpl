@@ -27,15 +27,15 @@ class Scope:
         mark = definition.definition.mark(name).from_node(definition)
         self.try_bind(symbol, mark)
 
-    def get_mark(self, symbol):
+    def get_mark(self, symbol, *, required=True):
         name = symbol.name
         mark = self.find_name(name)
 
         if mark is not None:
             return mark
-
-        msg = f'Unresolved symbol \'{name}\''
-        self.optimizer.add_error(symbol, msg)
+        elif required:
+            msg = f'Unresolved symbol \'{name}\''
+            self.optimizer.add_error(symbol, msg)
 
     def get_mark_name(self, name):
         if self.parent is None:

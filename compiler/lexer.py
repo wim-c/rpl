@@ -78,7 +78,7 @@ commands = {
 
 def make_token(t):
     t.type = syntax_tokens[t.value]
-    t.value = tokens.Token(t.type).from_token(t)
+    t.value = tokens.Token(t.type, t.value).from_token(t)
     return t
 
 
@@ -130,7 +130,7 @@ def make_text(t):
     return t
 
 
-class Lexer(object):
+class Lexer:
     tokens = (
         'COLON',
         'COMMAND',
@@ -152,9 +152,8 @@ class Lexer(object):
 
     t_ignore = ' \t\r'
 
-    def __init__(self, txt, *, name='input'):
-        self.errors = []
-        self.name = name
+    def __init__(self, txt, *, errors=None):
+        self.errors = [] if errors is None else errors
         self.lex = ply.lex.lex(module=self)
         self.lex.input(txt)
         self.lex.linepos = -1
@@ -166,7 +165,8 @@ class Lexer(object):
         return self.lex.token()
 
     def t_error(self, t):
-        self.errors.append(f'In {self.name} line {t.lineno} column {column(t)}: Unsupported charactor \'{t.value[0]}\'.')
+        column = t.lexpos - t.lexer.linepos
+        self.errors.append(f'l:{t.lineno} c:{column} Unsupported character \'{t.value[0]}\'.')
         t.lexer.skip(1)
 
     def t_newline(self, t):

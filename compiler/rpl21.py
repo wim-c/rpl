@@ -1,6 +1,7 @@
 import argparse
 import compiler
 import formatter
+import sys
 
 
 def dex(txt):
@@ -23,3 +24,9 @@ args = parser.parse_args()
 fmt = formatter.Format.create(args.fmt, args.output, args.prg)
 cmp = compiler.Compiler()
 cmp.compile(args.file, args.org, args.rt, fmt)
+
+if len(cmp.errors) > 0:
+    for error in cmp.errors:
+        sys.stderr.write(error)
+        sys.stderr.write('\n')
+    sys.exit(-1)

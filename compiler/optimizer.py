@@ -4,18 +4,6 @@ import scope
 import actions
 
 
-class ErrorMessage:
-    def __init__(self, node, message):
-        super().__init__()
-        self.node = node
-        self.message = message
-
-    def __str__(self):
-        line = self.node.line
-        column = self.node.column
-        return f'l:{line} c:{column} {self.message}'
-
-
 class Optimizer:
     def __init__(self, *, blocks=None, errors=None, parser_factory):
         super().__init__()
@@ -57,7 +45,7 @@ class Optimizer:
         return opt
 
     def add_error(self, node, msg):
-        self.errors.append(ErrorMessage(node, msg))
+        self.errors.append(f'l:{node.line} c:{node.column} {msg}.')
 
     # Open a new scope.  The current scope (if any) will be set as its parent
     # scope.

@@ -4,15 +4,21 @@ from lexer import Lexer
 import tokens
 
 
-class Parser(object):
+class Parser:
     tokens = Lexer.tokens
 
-    def __init__(self):
+    def __init__(self, *, errors=None):
         self.yacc = ply.yacc.yacc(module=self)
+        self.errors = [] if errors is None else errors
 
     def parse(self, lexer):
-        result = self.yacc.parse(lexer=lexer)
-        return result
+        return self.yacc.parse(lexer=lexer)
+
+    def p_error(self, p):
+        if p is None:
+            self.errors.append('Unexpected end of file.')
+        else:
+            self.errors.append(f'l:{p.value.line} c:{p.value.column} Syntax error at \'{p.value}\'.')
 
     # --- 
 
