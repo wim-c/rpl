@@ -725,9 +725,25 @@ class Preamble(Node):
         return formatter.emit(address, bytes([0x20, lo, hi]), self)
 
 
+# Represents either an inline procedure or a procedure in a let definition.
+# Such a procedure will be compiled into a separate code block.
 class Proc(Node):
     type = 'proc'
     mark_id = 0
+
+    def __init__(self, statements):
+        super().__init__()
+        self.statements = statements
+
+    def get_body(self):
+        return ProcBody(self.statements).from_node(self)
+
+
+# Represents the body statements of a procedure.  This node will be compiled
+# inline into the current code block.  It is typically the last node in the
+# optimizer input, since it ends in an implicit return statement.
+class ProcBody(Node):
+    type = 'proc_body'
 
     def __init__(self, statements):
         super().__init__()

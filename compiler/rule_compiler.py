@@ -56,7 +56,7 @@ class StateBuilder:
 
         return state
 
-    def make_target(self, rules, type):
+    def make_edge(self, rules, type):
         new_rules = []
         matching_rules = []
 
@@ -108,14 +108,11 @@ class StateBuilder:
 
         # return the new state and the methods off triggered rules, most
         # specific first.
-        return (state, *(rule[0] for rule in matching_rules))
+        return (type, state, *(rule[0] for rule in matching_rules))
 
     def visit_rules(self):
         rules = self.rules_to_visit.pop()
         state = self.state_rules[rules]
-
-        edges = []
-        targets = {}
 
         # set of types that appear at this point in the any of the rules.
         types = self.types.union(rule[2][rule[3]] for rule in rules)
@@ -125,19 +122,12 @@ class StateBuilder:
             if sup in self.order:
                 types.update(self.order[sup])
 
-        # determine next state for a given type
+        # Determine all edge that lead out of this state and order them by type
+        # inclusion.
+        edges = []
+
         for type in types:
-            target = self.make_target(rules, type)
-
-            # keep only the most generic type that leads to a state.
-            if target not in targets or self.issubtype(targets[target], type):
-                targets[target] = type
-
-        # filter out edges that already appear in the base state.
-        for target, type in targets.items():
-            edge = (type, *target)
-            if state > 0 and edge in self.states[0]:
-                continue
+            edge = self.make_edge(rules, type)
             for index in range(len(edges)):
                 if self.issubtype(type, edges[index][0]):
                     edges.insert(index, edge)
@@ -145,7 +135,52 @@ class StateBuilder:
             else:
                 edges.append(edge)
 
+        # Prune unnecessary edges (e.g. subtype with the same effect as a
+        # supertype).
+        self.prune_edges(state, edges)
+
         self.states[state] = tuple(edges)
+
+    def prune_edges(self, state, edges):
+        # Check if two edges lead to the same target (i.e. have the same target
+        # state and the same list of actions).
+        def same_target(e1, e2):
+            return len(e1) == len(e2) and \
+                all(e1[i] == e2[i] for i in range(1, len(e1)))
+
+        # Filter out edges that are identical to an edge of a the nearest
+        # supertype.  These edges do not add behavior to the state machine.
+        for i1 in range(len(edges) - 2, -1, -1):
+            # Find the edge for the nearest supertype (if any).
+            for i2 in range(i1 + 1, len(edges)):
+                if self.issubtype(edges[i1][0], edges[i2][0]):
+                    # If both lead to the same state with the same actions,
+                    # then remove the edge for the subtype.
+                    if same_target(edges[i1], edges[i2]):
+                        edges.pop(i1)
+
+                    # Continue to the next edge.
+                    break
+
+        # State 0 cannot default to state 0...
+        if state == 0:
+            return
+
+        # Filter out edges that appear already in state 0 and for which no edge
+        # for a supertype exists.
+        for i1 in range(len(edges) - 1, -1, -1):
+            # Skip if it does not appear in state 0.
+            if edges[i1] not in self.states[0]:
+                continue
+
+            # Find the edge for the nearest supertype (if any).
+            for i2 in range(i1 + 1, len(edges)):
+                if self.issubtype(edges[i1][0], edges[i2][0]):
+                    # If an edge for a supertype exists then keep this edge.
+                    break
+            else:
+                # No edge for a supertype found.  Remove this edge.
+                edges.pop(i1)
 
     def build_states(self):
         self.make_state([])

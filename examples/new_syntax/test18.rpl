@@ -1,0 +1,17 @@
+
+"CONTINUE?" getanswer gosub cont if
+"SURE?" getanswer gosub cont if
+"OK THEN!" print
+
+let getanswer def
+    print
+
+keyin:
+    get # 0 = if
+        . keyin goto
+    then
+        CHARY =
+    end
+end
+
+let CHARY: 89 end

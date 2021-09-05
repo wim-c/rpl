@@ -3,30 +3,30 @@
 
 class ParseStateMachine:
     transitions = (
-        (('expr', 1), ('mark', 2), ('compare', 3), ('define_data', None, 5), ('define_proc', None, 7), ('word', 4), ('statements', None, 13), ('data', None, 4), ('THEN', None, 1), ('if', None, 8), ('contif', None, 3), ('define_macro', None, 6), ('END', None, 0), ('ref', 5), ('words', None, 15), ('proc', None, 11), ('bytes', None, 2), ('const', 6), ('program', None, 12), ('symbol', None, 14), ('macro', None, 10), ('label', None, 9)),
-        (('expr', 12), ('branch', 0, 24), ('unop', None, 20), ('word', 13), ('ref', 14), ('const', 15)),
-        (('mark', 2, 27), ('goto', 0, 25), ('return', 0, 26)),
-        (('not', None, 28),),
-        (('expr', 7), ('branch', 0, 24), ('unop', None, 16), ('word', 8), ('ref', 9), ('const', 10)),
-        (('expr', 7), ('branch', 0, 23, 24), ('unop', None, 18), ('word', 11), ('ref', 9), ('const', 10)),
-        (('expr', 7), ('branch', 0, 24), ('unop', None, 18), ('word', 11), ('ref', 9), ('const', 10)),
-        (('expr', 12), ('branch', 0, 24), ('binop', None, 19), ('unop', None, 20), ('ref', 14), ('word', 13), ('const', 15)),
-        (('expr', 7), ('branch', 0, 24), ('binop', None, 17), ('unop', None, 16), ('ref', 9), ('word', 8), ('const', 10)),
-        (('expr', 7), ('branch', 0, 23, 24), ('binop', None, 19), ('unop', None, 18), ('ref', 9), ('word', 11), ('const', 10)),
-        (('expr', 7), ('branch', 0, 24), ('binop', None, 19), ('unop', None, 18), ('ref', 9), ('word', 11), ('const', 10)),
-        (('expr', 7), ('branch', 0, 24), ('binop', None, 19), ('unop', None, 16), ('ref', 9), ('word', 8), ('const', 10)),
-        (('expr', 12), ('branch', 0, 24), ('binop', None, 21), ('unop', None, 20), ('ref', 14), ('word', 13), ('const', 15)),
-        (('expr', 7), ('branch', 0, 24), ('binop', None, 22), ('unop', None, 16), ('ref', 9), ('word', 8), ('const', 10)),
-        (('expr', 7), ('branch', 0, 23, 24), ('binop', None, 22), ('unop', None, 18), ('ref', 9), ('word', 11), ('const', 10)),
-        (('expr', 7), ('branch', 0, 24), ('binop', None, 22), ('unop', None, 18), ('ref', 9), ('word', 11), ('const', 10)),
+        (('THEN', None, 1), ('if', None, 8), ('define_proc', None, 7), ('expr', 1), ('define_macro', None, 6), ('symbol', None, 15), ('program', None, 13), ('ref', 4), ('word', 6), ('const', 3), ('bytes', None, 2), ('END', None, 0), ('mark', 5), ('data', None, 4), ('define_data', None, 5), ('statements', None, 14), ('words', None, 16), ('label', None, 9), ('proc_body', None, 12), ('proc', None, 11), ('macro', None, 10), ('contif', None, 3), ('compare', 2)),
+        (('expr', 12), ('unop', None, 21), ('ref', 14), ('word', 15), ('const', 13), ('branch', 0, 25)),
+        (('not', None, 29),),
+        (('expr', 7), ('unop', None, 19), ('ref', 9), ('word', 11), ('const', 8), ('branch', 0, 25)),
+        (('expr', 7), ('unop', None, 19), ('ref', 9), ('word', 11), ('const', 8), ('branch', 0, 24, 25)),
+        (('stop', 0, 27), ('mark', 5, 28), ('return', 0, 27), ('goto', 0, 26)),
+        (('expr', 7), ('unop', None, 17), ('ref', 9), ('word', 10), ('const', 8), ('branch', 0, 25)),
+        (('word', 15), ('branch', 0, 25), ('expr', 12), ('unop', None, 21), ('ref', 14), ('const', 13), ('binop', None, 20)),
+        (('word', 11), ('branch', 0, 25), ('expr', 7), ('unop', None, 19), ('ref', 9), ('const', 8), ('binop', None, 20)),
+        (('word', 11), ('branch', 0, 24, 25), ('expr', 7), ('unop', None, 19), ('ref', 9), ('const', 8), ('binop', None, 20)),
+        (('word', 10), ('branch', 0, 25), ('expr', 7), ('unop', None, 17), ('ref', 9), ('const', 8), ('binop', None, 18)),
+        (('word', 10), ('branch', 0, 25), ('expr', 7), ('unop', None, 17), ('ref', 9), ('const', 8), ('binop', None, 20)),
+        (('word', 15), ('branch', 0, 25), ('expr', 12), ('unop', None, 21), ('ref', 14), ('const', 13), ('binop', None, 22)),
+        (('word', 11), ('branch', 0, 25), ('expr', 7), ('unop', None, 19), ('ref', 9), ('const', 8), ('binop', None, 23)),
+        (('word', 11), ('branch', 0, 24, 25), ('expr', 7), ('unop', None, 19), ('ref', 9), ('const', 8), ('binop', None, 23)),
+        (('word', 10), ('branch', 0, 25), ('expr', 7), ('unop', None, 17), ('ref', 9), ('const', 8), ('binop', None, 23)),
     )
 
     order = {
-        'unop': {'int', 'not'},
-        'binop': {'<>', '>=', '\\', '/', '+', '*', '=', '-', '>', '<=', '<', 'and', 'or'},
-        'const': {'expr', 'word', 'ref'},
+        'unop': {'not', 'int'},
+        'binop': {'<=', '=', '<>', '\\', '>', '<', '>=', '*', '/', 'or', '+', 'and', '-', 'compare'},
+        'const': {'expr', 'ref', 'word'},
         'branch': {'gosub', 'goto'},
-        'compare': {'<>', '>=', '=', '>', '<=', '<'}
+        'compare': {'<=', '<>', '>', '<', '>=', '='}
     }
 
     @classmethod
@@ -49,6 +49,7 @@ class ParseStateMachine:
             owner.push_label,
             owner.push_macro,
             owner.push_proc,
+            owner.push_proc_body,
             owner.push_program,
             owner.push_statements,
             owner.push_symbol,

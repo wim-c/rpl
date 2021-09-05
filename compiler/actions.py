@@ -76,30 +76,28 @@ class Actions:
 
     def push_define_proc(self, optimizer):
         let = optimizer.rewind()
+
+        # Get the procedure's mark from the let definition.
         mark = optimizer.scope.get_mark(let.symbol)
 
         if mark is not None:
-            return_ = tokens.Command(tokens.Command.RETURN)
-            opt = optimizer.create_new()
-            opt.push_node(return_)
-            opt.push_node(let.definition.statements)
-            opt.push_node(mark)
-            opt.compile_to(blocks.CodeBlock, optimizer.blocks)
+            # Compile the procedure and add all its blocks to the optimizer.
+            self.compile_proc(mark, let.definition, optimizer)
 
         return True
+
+    def push_then_mark(self, optimizer):
+        then = tokens.Token(tokens.Token.THEN)
+        mark = then.mark()
+        self.then_marks.append(mark)
+        optimizer.push_node(then)
+        optimizer.push_node(mark)
 
     def push_if(self, optimizer):
         if_ = optimizer.rewind()
 
-        def push_then_mark():
-            then = tokens.Token(tokens.Token.THEN)
-            mark = then.mark()
-            self.then_marks.append(mark)
-            optimizer.push_node(then)
-            optimizer.push_node(mark)
-
         # Create mark beyond END of if statement.
-        push_then_mark()
+        self.push_then_mark(optimizer)
         end_mark = self.then_marks[-1]
 
         # Push statements block followed by a jump to the end mark.
@@ -112,7 +110,7 @@ class Actions:
         # each of them.
         for block in if_.blocks[:0:-1]:
             push_if_block(block)
-            push_then_mark()
+            self.push_then_mark(optimizer)
 
         # Push first statements block and a conditional jump (if false) to the
         # current THEN mark.  This will be the end mark if there are no THEN
@@ -147,29 +145,57 @@ class Actions:
         optimizer.open_scope()
         return True
 
-    # Reduce a procedure.
-    def push_proc(self, optimizer):
-        proc = optimizer.rewind()
-        return_ = tokens.Command(tokens.Command.RETURN)
-        mark = proc.mark().from_node(proc)
-
+    # Helper method to compile a procedure using a separate optimizer.
+    def compile_proc(self, mark, proc, optimizer):
+        # Create an optimizer to compile to procedure.
         opt = optimizer.create_new()
-        opt.push_node(return_)
-        opt.push_node(proc.statements)
+
+        # Push the procedure's body and entry point mark.
+        proc_body = proc.get_body()
+        opt.push_node(proc_body)
         opt.push_node(mark)
+
+        # Compile and add all blocks to the calling optimizer.
         opt.compile_to(blocks.CodeBlock, optimizer.blocks)
 
+    # Reduce an anonymous procedure.
+    def push_proc(self, optimizer):
+        proc = optimizer.rewind()
+
+        # Create an implicit mark for the procedure.
+        mark = proc.mark().from_node(proc)
+
+        # Compile the procedure and add resulting blocks to the optimizer.
+        self.compile_proc(mark, proc, optimizer)
+
+        # Push a reference to the procedure's mark.
         ref = mark.resolve().from_node(proc)
         optimizer.push_node(ref)
+        return True
+
+    # Reduce a procedure body.
+    def push_proc_body(self, optimizer):
+        proc_body = optimizer.rewind()
+
+        # End the procedure body with a then mark as target for any contif
+        # statement and an implicit return statement.
+        return_ = tokens.Command(tokens.Command.RETURN)
+        optimizer.push_node(return_)
+        self.push_then_mark(optimizer)
+
+        # Push the procedure's statements.
+        optimizer.push_node(proc_body.statements)
         return True
 
     # Reduce a program.
     def push_program(self, optimizer):
         program = optimizer.rewind()
 
-        # End with an implicit stop statement.
-        node = tokens.Command(tokens.Command.STOP)
-        optimizer.push_node(node)
+        # End with a mark for any contif statement and an implicit stop
+        # statement.
+        stop = tokens.Command(tokens.Command.STOP)
+        optimizer.push_node(stop)
+        self.push_then_mark(optimizer)
 
         # Optimize the program body statements.
         optimizer.push_node(program.statements)

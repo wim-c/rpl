@@ -43,6 +43,7 @@ class Parser:
         '''statement : COMMAND
                 | INTEGER
                 | SYMBOL
+                | contif
                 | data
                 | if
                 | label
@@ -51,6 +52,10 @@ class Parser:
         p[0] = p[1]
 
     # ---
+
+    def p_contif(self, p):
+        'contif : CONT IF'
+        p[0] = tokens.Command(tokens.Command.CONTIF).from_node(p[1])
 
     def p_data(self, p):
         'data : DATA data_parts END'
@@ -89,12 +94,12 @@ class Parser:
                 | words'''
         p[0] = p[1]
 
-    def p_if_blocks(self, p):
-        'if_blocks : if_block'
+    def p_if_statements(self, p):
+        'if_blocks : statements'
         p[0] = [p[1]]
 
-    def p_if_blocks_then(self, p):
-        'if_blocks : if_blocks THEN if_block'
+    def p_if_statements_then(self, p):
+        'if_blocks : if_blocks THEN statements'
         p[1].append(p[3])
         p[0] = p[1]
 
@@ -113,16 +118,6 @@ class Parser:
     def p_words(self, p):
         'words : LBRACKET statements RBRACKET'
         p[0] = tokens.Words(p[2]).from_node(p[1])
-
-    def p_if_block(self, p):
-        'if_block : statements'
-        p[0] = p[1]
-
-    def p_if_block_cont_if(self, p):
-        'if_block : if_block CONT IF statements'
-        p[1].append(tokens.Command(tokens.Command.CONTIF).from_node(p[2]))
-        p[1].extend(p[4])
-        p[0] = p[1]
 
     def p_macro(self, p):
         'macro : COLON statements END'

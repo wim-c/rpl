@@ -1,3 +1,7 @@
+# Note that the type hierarchy that is defined with the :> relation *must* be a
+# lattice.  This is not checked the rule compiler!  For example, this is why
+# compare is explicitly a subtype of binop here.
+
 # Single node reductions.
 push_END           :  END
 push_THEN          :  THEN
@@ -11,6 +15,7 @@ push_if            :  if
 push_label         :  label
 push_macro         :  macro
 push_proc          :  proc
+push_proc_body     :  proc_body
 push_program       :  program
 push_statements    :  statements
 push_symbol        :  symbol
@@ -20,7 +25,7 @@ push_words         :  words
 unop  :>  int not
 
 # Binary operators.
-binop  :>  * + - / < <= <> = > >= \ and or
+binop  :>  * + - / \ and or compare
 
 # Unary operators on words.
 word_unop  :  word unop
