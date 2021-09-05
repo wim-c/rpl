@@ -136,8 +136,9 @@ class StateBuilder:
                 edges.append(edge)
 
         # Prune unnecessary edges (e.g. subtype with the same effect as a
-        # supertype).
-        self.prune_edges(state, edges)
+        # supertype) until no edges can be pruned anymore.
+        while self.prune_edges(state, edges):
+            pass
 
         self.states[state] = tuple(edges)
 
@@ -148,6 +149,8 @@ class StateBuilder:
             return len(e1) == len(e2) and \
                 all(e1[i] == e2[i] for i in range(1, len(e1)))
 
+        pruned = False
+
         # Filter out edges that are identical to an edge of a the nearest
         # supertype.  These edges do not add behavior to the state machine.
         for i1 in range(len(edges) - 2, -1, -1):
@@ -157,6 +160,7 @@ class StateBuilder:
                     # If both lead to the same state with the same actions,
                     # then remove the edge for the subtype.
                     if same_target(edges[i1], edges[i2]):
+                        pruned = True
                         edges.pop(i1)
 
                     # Continue to the next edge.
@@ -164,7 +168,7 @@ class StateBuilder:
 
         # State 0 cannot default to state 0...
         if state == 0:
-            return
+            return pruned
 
         # Filter out edges that appear already in state 0 and for which no edge
         # for a supertype exists.
@@ -180,7 +184,10 @@ class StateBuilder:
                     break
             else:
                 # No edge for a supertype found.  Remove this edge.
+                pruned = True
                 edges.pop(i1)
+
+        return pruned
 
     def build_states(self):
         self.make_state([])
