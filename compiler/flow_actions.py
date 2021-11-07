@@ -45,15 +45,32 @@ class FlowActions:
 
     def push_cond(self, optimizer):
         cond = optimizer.peek()
-        if (marked := cond.mark.marked) is None or \
-                marked.get_type() != tokens.Command.GOTO or \
-                marked.mark is None:
-            # Not a branch to a jump to mark command.  Leave it untouched.
+        if (marked := cond.mark.marked) is None:
+            # Mark is not followed by a final command.  Nothing to optimize.
+            return False
+        elif (marked_type := marked.get_type()) != tokens.Command.RETURN and \
+                (marked_type != tokens.Command.GOTO or marked.mark is None):
+            # Marked command is not a RETURN and not a GOTO with a target mark.
+            # Nothing to optimize.
             return False
 
-        # Replace by a branch to the marked jump target.
+        # Replace conditional branch by a new conditional node.
         optimizer.rewind()
-        node = tokens.Command(cond.get_type(), mark=marked.mark).from_node(cond)
+
+        # Get the branch type (either BEQ or BNE).
+        cond_type = cond.get_type()
+
+        if marked_type == tokens.Command.GOTO:
+            # Replace branch to a GOTO by a short circuited branch.
+            node = tokens.Command(cond_type, mark=marked.mark)
+        elif cond_type == tokens.BEQ:
+            # Replace BEQ to a RETURN by a REQ.
+            node = tokens.Command(tokens.REQ)
+        else:
+            # Replace BNE to a RETURN by a RNE.
+            node = tokens.Command(tokens.RNE)
+
+        node.from_node(cond)
         optimizer.push_node(node)
         return True
 
@@ -86,10 +103,24 @@ class FlowActions:
         if cond.mark is not mark or goto.mark is None:
             return False
         elif cond.get_type() == tokens.Command.BEQ:
-            type = tokens.Command.BNE
+            cond_type = tokens.Command.BNE
         else:
-            type = tokens.Command.BEQ
-        node = tokens.Command(type, mark=goto.mark).from_node(cond)
+            cond_type = tokens.Command.BEQ
+        node = tokens.Command(cond_type, mark=goto.mark).from_node(cond)
+        optimizer.rewind(3)
+        optimizer.push_node(mark)
+        optimizer.push_node(node)
+        return True
+
+    def cond_return_mark(self, optimizer):
+        cond, return_, mark = optimizer.peek(3)
+        if cond.mark is not mark:
+            return False
+        elif cond.get_type() == tokens.Command.BEQ:
+            cond_type = tokens.Command.RNE
+        else:
+            cond_type = tokens.Command.REQ
+        node = tokens.Command(cond_type).from_node(cond)
         optimizer.rewind(3)
         optimizer.push_node(mark)
         optimizer.push_node(node)

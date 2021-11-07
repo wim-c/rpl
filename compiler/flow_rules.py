@@ -3,22 +3,23 @@
 
 class ParseStateMachine:
     transitions = (
-        (('gosub', 1, 1), ('cond', 2, 2), ('goto', 5, 3), ('final', 3), ('mark', 0, 0), ('word', 4)),
-        (('return', None, 6),),
-        (('goto', 8, 3),),
-        (('command', None, 10), ('const', None, 11), ('mark', 0, 12, 0)),
-        (('cond', None, 7), ('=', 6), ('<>', 7)),
-        (('command', None, 10), ('const', None, 11), ('mark', 0, 4, 12, 0)),
-        (('cond', 2, 8, 2),),
-        (('cond', 2, 9, 2),),
-        (('command', None, 10), ('const', None, 11), ('mark', 0, 5, 4, 12, 0)),
+        (('word', 2), ('cond', 1, 2), ('mark', 0, 0), ('goto', 4, 3), ('final', 3), ('gosub', 5, 1)),
+        (('return', 8), ('goto', 9, 3)),
+        (('cond', None, 8), ('=', 6), ('<>', 7)),
+        (('command', None, 11), ('mark', 0, 13, 0), ('const', None, 12)),
+        (('command', None, 11), ('mark', 0, 4, 13, 0), ('const', None, 12)),
+        (('return', None, 7),),
+        (('cond', 1, 9, 2),),
+        (('cond', 1, 10, 2),),
+        (('command', None, 11), ('mark', 0, 6, 13, 0), ('const', None, 12)),
+        (('command', None, 11), ('mark', 0, 5, 4, 13, 0), ('const', None, 12)),
     )
 
     order = {
-        'cond': {'beq', 'bne'},
-        'final': {'return', 'goto', 'stop'},
-        'command': {'fn', 'gosub', '<=', 'stop', 'bne', '.', 'or', 'int', '%', 'goto', ';', '+', '/', 'str$', 'next', 'return', 'peek', 'get', '<', '-', '*', 'new', 'on', 'not', '=', '!', '#', 'input', '$', 'and', 'chr$', 'print', 'sys', '<>', '>', 'poke', 'for', 'rnd', '@', 'beq', '>=', 'clr', '\\', '^'},
-        'const': {'ref', 'expr', 'word'}
+        'cond': {'bne', 'beq'},
+        'command': {'#', '=', '.', 'req', '<>', 'sys', '<=', 'input', 'rne', '!', 'and', 'or', '^', 'new', 'beq', 'clr', 'poke', '<', 'gosub', '/', '%', 'str$', 'bne', 'stop', ';', 'chr$', '>', 'for', '@', 'next', '$', 'fn', 'return', 'int', 'goto', '\\', 'print', 'on', 'not', 'peek', '>=', '-', '*', 'get', 'rnd', '+'},
+        'const': {'word', 'ref', 'expr'},
+        'final': {'stop', 'goto', 'return'}
     }
 
     @classmethod
@@ -35,6 +36,7 @@ class ParseStateMachine:
             owner.push_goto,
             owner.goto_mark,
             owner.cond_goto_mark,
+            owner.cond_return_mark,
             owner.gosub_return,
             owner.word_cond,
             owner.word_eq_cond,

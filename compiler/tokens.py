@@ -241,8 +241,10 @@ class Command(Node):
     PICK = '^'
     POKE = 'poke'
     PRINT = 'print'
+    REQ = 'req'
     RETURN = 'return'
     RND = 'rnd'
+    RNE = 'rne'
     ROLL = '$'
     STOP = 'stop'
     STORE = '!'
@@ -308,7 +310,7 @@ class Command(Node):
                 # command.
                 mark.used = True
             elif self.type in self.conditionals and marked.type != self.GOTO:
-                # The mark is used since A conditional branch can only short
+                # The mark is used since a conditional branch can only short
                 # circuit a jump.
                 mark.used = True
 
@@ -333,13 +335,6 @@ class Command(Node):
             data = self.eval_data()
             return self.emit_offset(code, address, data, formatter)
             
-
-Command.branches = {
-    Command.BEQ,
-    Command.BNE,
-    Command.GOSUB,
-    Command.GOTO
-}
 
 Command.conditionals = {
     Command.BEQ,
@@ -417,8 +412,10 @@ Command.code = {
     Command.PICK: step(),
     Command.POKE: step(),
     Command.PRINT: step(),
+    Command.REQ: step(),
     Command.RETURN: step(),
     Command.RND: step(),
+    Command.RNE: step(),
     Command.ROLL: step(),
     Command.STOP: step(),
     Command.STORE: step(),

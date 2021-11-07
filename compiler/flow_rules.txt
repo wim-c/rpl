@@ -16,8 +16,9 @@ push_goto?  :  goto
 # Simplify zero offset goto.
 goto_mark?  :  goto mark
 
-# Simplify conditional branch over a goto into a bne.
-cond_goto_mark?  :  cond goto mark
+# Simplify conditional branch over a GOTO or RETURN command..
+cond_goto_mark?    :  cond goto mark
+cond_return_mark?  :  cond return mark
 
 # Tail call optimization.
 gosub_return  :  gosub return
@@ -27,16 +28,16 @@ word_cond  :  word cond
 word_eq_cond?  :  word = cond
 word_neq_cond?  :  word <> cond
 
-# Commands that always divert execution flow.
-final  :>  goto return stop
-
 # Commands
 command  :>  ! # $ % * + - . / ; < <= <> = > >= @ \ ^ and beq bne chr$ clr fn
 command  :>  for get gosub goto input int new next not on or peek poke print
-command  :>  return rnd stop str$ sys
+command  :>  req return rnd rne stop str$ sys
 
 # Constants
 const  :>  expr ref word
+
+# Commands that always divert execution flow.
+final  :>  goto return stop
 
 # Skip code following a final command.
 final_command  :  final command
