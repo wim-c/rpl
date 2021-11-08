@@ -213,8 +213,10 @@ push15      cmp #$40        ; Check sign.
 !word exec_pick
 !word exec_poke
 !word exec_print
+!word exec_req
 !word exec_return
 !word exec_rnd
+!word exec_rne
 !word exec_roll
 !word exec_stop
 !word exec_store
@@ -401,6 +403,30 @@ exec_bnen       jsr iszero      ; Test and pop tos.
 exec_bnep       jsr iszero      ; Test and pop tos.
                 bne exec_gotop  ; Goto forward relative address if not zero.
                 jmp decodenext  ; Skip operand and decode next opcode.
+
+;
+; Inspect and drop tos.  Return from subroutine if equal to zero..
+;
+exec_req        jsr iszero      ; Test and pop tos.
+                beq exec_return ; Return if zero.
+                jmp decode      ; Otherwise decode next opcode.
+
+;
+; Inspect and drop tos.  Return from subroutine if not equal to zero..
+;
+exec_rne        jsr iszero      ; Test and pop tos.
+                bne exec_return ; Return if not zero.
+                jmp decode      ; Otherwise decode next opcode.
+
+;
+; Pull address-1 from return stack an continue byte code interpretation at
+; address.
+;
+exec_return     pla             ; Pull lo byte in y register.
+                tay
+                pla             ; Pull hi byte into pc.
+                sta pc+1
+                jmp decodenext  ; Decode next opcode.
 
 ;
 ; Push next-1 on return stack, pop tos and set it as pc.  Here next is the
@@ -1038,16 +1064,6 @@ exec_print      inx             ; Pop tos into ea.
                 ldx savex       ; Restore x register.
 +               ldy savey       ; Restore y register.
                 jmp decode      ; Decode next opcode.
-
-;
-; Pull address-1 from return stack an continue byte code interpretation at
-; address.
-;
-exec_return     pla             ; Pull lo byte in y register.
-                tay
-                pla             ; Pull hi byte into pc.
-                sta pc+1
-                jmp decodenext  ; Decode next opcode.
 
 ;
 ; Generate a pseudo random word using the sequence of steps below to mix a
