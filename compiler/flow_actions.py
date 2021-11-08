@@ -63,12 +63,12 @@ class FlowActions:
         if marked_type == tokens.Command.GOTO:
             # Replace branch to a GOTO by a short circuited branch.
             node = tokens.Command(cond_type, mark=marked.mark)
-        elif cond_type == tokens.BEQ:
+        elif cond_type == tokens.Command.BEQ:
             # Replace BEQ to a RETURN by a REQ.
-            node = tokens.Command(tokens.REQ)
+            node = tokens.Command(tokens.Command.REQ)
         else:
             # Replace BNE to a RETURN by a RNE.
-            node = tokens.Command(tokens.RNE)
+            node = tokens.Command(tokens.Command.RNE)
 
         node.from_node(cond)
         optimizer.push_node(node)

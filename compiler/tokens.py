@@ -97,7 +97,7 @@ class Node:
         return address + 1
 
     # Indicates that this node is visited in the program.  Do not visit
-    # references marks directly.  Instead, add referencesd marks to the
+    # referenced marks directly.  Instead, add referencesd marks to the
     # marks_to_visit set.  Return True if the node after this one should also
     # be set as visited (if present).
     def set_visited(self, marks_to_visit):
@@ -298,22 +298,15 @@ class Command(Node):
             return self.assign_offset_address(address, data)
 
     def set_visited(self, marks_to_visit):
-        if self.const is not None:
+        if (const := self.const) is not None:
             # Set all parts of the const expression as visited.
-            self.const.set_visited(marks_to_visit)
+            const.set_visited(marks_to_visit)
         elif (mark := self.mark) is not None:
             # Make sure so to visit the referenced mark later.
             marks_to_visit.add(mark)
+            mark.used = True
 
-            if (marked := mark.marked) is None:
-                # Mark is used as a target since it is not followed by a final
-                # command.
-                mark.used = True
-            elif self.type in self.conditionals and marked.type != self.GOTO:
-                # The mark is used since a conditional branch can only short
-                # circuit a jump.
-                mark.used = True
-
+        # Do not visit commands that follow a final command.
         return self.type not in self.finals
 
     def push_to(self, stack):
@@ -685,8 +678,7 @@ class Mark(Node):
 
     def set_visited(self, marks_to_visit):
         if self.visited:
-            # Only continue passed this mark if it was not set as visited
-            # before.
+            # Only continue past this mark if it was not set as visited before.
             return False
         else:
             self.visited = True
