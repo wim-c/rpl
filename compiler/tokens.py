@@ -164,6 +164,7 @@ class ByteData(Node):
     def set_visited(self, marks_to_visit):
         for node in self.nodes:
             node.set_visited(marks_to_visit)
+        return True
 
     def emit_word(self, address, formatter):
         for node in self.nodes:
