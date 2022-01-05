@@ -4,10 +4,8 @@ import flow_rules
 
 
 class FlowActions:
-    @classmethod
-    def parser_factory(cls):
-        actions = cls()
-        return flow_rules.ParseStateMachine(actions)
+    def make_parser(self):
+        return flow_rules.ParseStateMachine(self)
 
     def push_mark(self, optimizer):
         mark = optimizer.peek()

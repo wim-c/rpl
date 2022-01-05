@@ -18,7 +18,7 @@ class Scope:
     def add_label(self, label):
         symbol = label.symbol
         name = self.get_mark_name(symbol.name)
-        mark = label.mark(name).from_node(label)
+        mark = label.mark(name)
         self.try_bind(symbol, mark)
 
     def add_definition(self, definition):

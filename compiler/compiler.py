@@ -42,7 +42,8 @@ class Compiler:
         # the code reduction rules defined in the rules.txt file and
         # implemented by the Actions class.
         compiled_blocks = []
-        opt = optimizer.Optimizer(errors=self.errors, parser_factory=actions.Actions.parser_factory)
+        proc_parser = actions.ProcActions().make_parser()
+        opt = optimizer.Optimizer(errors=self.errors, parser=proc_parser)
         opt.push_node(prg)
         opt.compile_to(blocks.CodeBlock, compiled_blocks)
 
@@ -117,7 +118,8 @@ class Compiler:
     def recompile_block(self, compiled_block):
         # Recompile the block using the flow actions for optimisation.
         recompiled_blocks = []
-        opt = optimizer.Optimizer(parser_factory=flow_actions.FlowActions.parser_factory)
+        flow_parser = flow_actions.FlowActions().make_parser()
+        opt = optimizer.Optimizer(parser=flow_parser)
         opt.push_nodes(compiled_block.nodes)
         opt.compile_to(type(compiled_block), recompiled_blocks)
 

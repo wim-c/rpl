@@ -1,40 +1,133 @@
-
 import tokens
 import blocks
 import rules
 
 
-# Class that implements all actions from the rules.txt definition.
+# Class that implements most of the actions from the rules.txt definition.
+# Actions that have different behavior in a code context or a data context are
+# defined in specialized classes.
 class Actions:
-    @classmethod
-    def parser_factory(cls):
-        actions = cls()
-        return rules.ParseStateMachine(actions)
-
     def __init__(self):
         super().__init__()
         self.then_marks = []
+
+    # Begin of method section as defined by rules.txt.
+
+    def compare_not(self, optimizer):
+        compare, not_ = optimizer.rewind(2)
+        op = compare.get_type()
+        if op == tokens.Command.LT:
+            op = tokens.Command.GEQ
+        elif op == tokens.Command.LEQ:
+            op = tokens.Command.GT
+        elif op == tokens.Command.NEQ:
+            op = tokens.Command.EQ
+        elif op == tokens.Command.EQ:
+            op = tokens.Command.NEQ
+        elif op == tokens.Command.GT:
+            op = tokens.Command.LEQ
+        elif op == tokens.Command.GEQ:
+            op = tokens.Command.LT
+        node = tokens.Command(op).from_node(not_)
+        optimizer.push_node(node)
+        return True
+
+    def const_branch(self, optimizer):
+        branch = optimizer.peek()
+        if branch.has_data():
+            return False
+        const, branch = optimizer.rewind(2)
+        branch.const = const
+        optimizer.push_node(branch)
+        return True
+
+    def const_const_binop(self, optimizer):
+        const1, const2, binop = optimizer.rewind(3)
+        expr = tokens.Expression([const1]).from_node(binop)
+        optimizer.push_node(binop)
+        optimizer.push_node(const2)
+        optimizer.push_node(expr)
+        return True
+
+    def const_unop(self, optimizer):
+        const, unop = optimizer.rewind(2)
+        expr = tokens.Expression([const]).from_node(unop)
+        optimizer.push_node(unop)
+        optimizer.push_node(expr)
+        return True
+
+    def expr_const_binop(self, optimizer):
+        expr, const, binop = optimizer.rewind(3)
+        expr.from_node(binop).append(const)
+        expr.append(binop)
+        optimizer.push_node(expr)
+        return True
+
+    def expr_expr_binop(self, optimizer):
+        expr1, expr2, binop = optimizer.rewind(3)
+        expr1.from_node(binop).extend(expr2.nodes)
+        expr1.append(binop)
+        optimizer.push_node(expr1)
+        return True
+
+    def expr_unop(self, optimizer):
+        expr, unop = optimizer.rewind(2)
+        expr.from_node(unop).append(unop)
+        optimizer.push_node(expr)
+        return True
+
+    # Compile a data node defined by a let node.
+    def let_data(self, optimizer):
+        let, data = optimizer.rewind(2)
+        mark = optimizer.scope.get_mark(let.symbol)
+        self.compile_data(mark, data.statements, optimizer)
+        return True
+
+    # Macros are expanded and compiled in place only.  The macro definition
+    # from a let nore needs no processing at its point of definition.
+    def let_macro(self, optimizer):
+        optimizer.rewind(2)
+        return True
+
+    # Compile a procedure node defined by a let node.
+    def let_proc(self, optimizer):
+        let, proc = optimizer.rewind(2)
+        mark = optimizer.scope.get_mark(let.symbol)
+        self.compile_proc(mark, proc.statements, optimizer)
+        return True
+
+    def mark_final(self, optimizer):
+        mark, final = optimizer.peek(2)
+        if mark.marked is final:
+            return False
+        mark, final = optimizer.rewind(2)
+        mark.marked = final
+        optimizer.push_node(final)
+        optimizer.push_node(mark)
+        return True
+
+    def mark_goto(self, optimizer):
+        goto = optimizer.peek()
+        return goto.has_data() and self.mark_final(optimizer)
+
+    def mark_mark(self, optimizer):
+        mark1, mark2 = optimizer.peek(2)
+        if mark1.marked is mark2.marked:
+            return False
+        mark1, mark2 = optimizer.rewind(2)
+        mark1.marked = mark2.marked
+        optimizer.push_node(mark2)
+        optimizer.push_node(mark1)
+        return True
 
     def push_END(self, optimizer):
         optimizer.rewind()
         optimizer.close_scope()
         return True
-            
+
     def push_THEN(self, optimizer):
         optimizer.rewind()
         self.then_marks.pop()
-        return True
-
-    def push_bytes(self, optimizer):
-        bytes = optimizer.rewind()
-
-        opt = optimizer.create_new()
-        opt.push_node(bytes.statements)
-        nodes, blocks = opt.compile()
-
-        byte_block = tokens.ByteData(nodes).from_node(bytes)
-        optimizer.emit_node(byte_block)
-        optimizer.extend_blocks(blocks)
         return True
 
     def push_contif(self, optimizer):
@@ -47,51 +140,11 @@ class Actions:
     # Reduce a data block
     def push_data(self, optimizer):
         data = optimizer.rewind()
-        mark = data.mark().from_node(data)
-
-        opt = optimizer.create_new()
-        opt.push_nodes(data.blocks)
-        opt.push_node(mark)
-        opt.compile_to(blocks.DataBlock, optimizer.blocks)
-
+        mark = data.mark()
+        self.compile_data(mark, data.statements, optimizer)
         ref = mark.resolve().from_node(data)
         optimizer.push_node(ref)
         return True
-
-    def push_define_data(self, optimizer):
-        let = optimizer.rewind()
-        mark = optimizer.scope.get_mark(let.symbol)
-
-        if mark is not None:
-            opt = optimizer.create_new()
-            opt.push_nodes(let.definition.blocks)
-            opt.push_node(mark)
-            opt.compile_to(blocks.DataBlock, optimizer.blocks)
-
-        return True
-        
-    def push_define_macro(self, optimizer):
-        optimizer.rewind()
-        return True
-
-    def push_define_proc(self, optimizer):
-        let = optimizer.rewind()
-
-        # Get the procedure's mark from the let definition.
-        mark = optimizer.scope.get_mark(let.symbol)
-
-        if mark is not None:
-            # Compile the procedure and add all its blocks to the optimizer.
-            self.compile_proc(mark, let.definition, optimizer)
-
-        return True
-
-    def push_then_mark(self, optimizer):
-        then = tokens.Token(tokens.Token.THEN)
-        mark = then.mark()
-        self.then_marks.append(mark)
-        optimizer.push_node(then)
-        optimizer.push_node(mark)
 
     def push_if(self, optimizer):
         if_ = optimizer.rewind()
@@ -121,7 +174,7 @@ class Actions:
         optimizer.push_node(beq)
 
         return True
-        
+
     def push_label(self, optimizer):
         label = optimizer.rewind()
 
@@ -136,6 +189,19 @@ class Actions:
 
         return True
 
+    def push_let(self, optimizer):
+        let = optimizer.peek()
+
+        if optimizer.scope.get_mark(let.symbol, required=False) is None:
+            # Drop this let node since its symbol is not defined.  An error has
+            # already been reported in that case.
+            optimizer.rewind()
+            return True
+
+        # Push the bound node to trigger a specific rule based on its type.
+        # This node will be a data node, proc node, or macro node.
+        optimizer.push_node(let.definition)
+
     # Reduce a Macro node.
     def push_macro(self, optimizer):
         macro = optimizer.rewind()
@@ -145,46 +211,19 @@ class Actions:
         optimizer.open_scope()
         return True
 
-    # Helper method to compile a procedure using a separate optimizer.
-    def compile_proc(self, mark, proc, optimizer):
-        # Create an optimizer to compile to procedure.
-        opt = optimizer.create_new()
-
-        # Push the procedure's body and entry point mark.
-        proc_body = proc.get_body()
-        opt.push_node(proc_body)
-        opt.push_node(mark)
-
-        # Compile and add all blocks to the calling optimizer.
-        opt.compile_to(blocks.CodeBlock, optimizer.blocks)
-
     # Reduce an anonymous procedure.
     def push_proc(self, optimizer):
         proc = optimizer.rewind()
 
         # Create an implicit mark for the procedure.
-        mark = proc.mark().from_node(proc)
+        mark = proc.mark()
 
         # Compile the procedure and add resulting blocks to the optimizer.
-        self.compile_proc(mark, proc, optimizer)
+        self.compile_proc(mark, proc.statements, optimizer)
 
         # Push a reference to the procedure's mark.
         ref = mark.resolve().from_node(proc)
         optimizer.push_node(ref)
-        return True
-
-    # Reduce a procedure body.
-    def push_proc_body(self, optimizer):
-        proc_body = optimizer.rewind()
-
-        # End the procedure body with a then mark as target for any contif
-        # statement and an implicit return statement.
-        return_ = tokens.Command(tokens.Command.RETURN)
-        optimizer.push_node(return_)
-        self.push_then_mark(optimizer)
-
-        # Push the procedure's statements.
-        optimizer.push_node(proc_body.statements)
         return True
 
     # Reduce a program.
@@ -235,15 +274,13 @@ class Actions:
 
         return True
 
-    def push_words(self, optimizer):
-        words = optimizer.rewind()
-
-        opt = optimizer.create_new()
-        opt.push_node(words.statements)
-        nodes, blocks = opt.compile()
-
-        optimizer.emit_nodes(nodes)
-        optimizer.extend_blocks(blocks)
+    def ref_branch(self, optimizer):
+        branch = optimizer.peek()
+        if branch.has_data():
+            return False
+        ref, branch = optimizer.rewind(2)
+        branch.mark = ref.mark
+        optimizer.push_node(branch)
         return True
 
     def word_unop(self, optimizer):
@@ -260,106 +297,128 @@ class Actions:
         optimizer.push_node(word)
         return True
 
-    def const_unop(self, optimizer):
-        const, unop = optimizer.rewind(2)
-        expr = tokens.Expression([const]).from_node(unop)
-        optimizer.push_node(unop)
-        optimizer.push_node(expr)
-        return True
+    #
+    # End of method section as defined by rules.txt.  Helper methods follow
+    # below.
+    #
 
-    def const_const_binop(self, optimizer):
-        const1, const2, binop = optimizer.rewind(3)
-        expr = tokens.Expression([const1]).from_node(binop)
-        optimizer.push_node(binop)
-        optimizer.push_node(const2)
-        optimizer.push_node(expr)
-        return True
+    # Ctreate a parser instance that can be used by an optimizer.  The parser
+    # triggers methods on self according to the rules in rules.txt.
+    def make_parser(self):
+        return rules.ParseStateMachine(self)
 
-    def expr_unop(self, optimizer):
-        expr, unop = optimizer.rewind(2)
-        expr.from_node(unop).append(unop)
-        optimizer.push_node(expr)
-        return True
-
-    def expr_expr_binop(self, optimizer):
-        expr1, expr2, binop = optimizer.rewind(3)
-        expr1.from_node(binop).extend(expr2.nodes)
-        expr1.append(binop)
-        optimizer.push_node(expr1)
-        return True
-
-    def expr_const_binop(self, optimizer):
-        expr, const, binop = optimizer.rewind(3)
-        expr.from_node(binop).append(const)
-        expr.append(binop)
-        optimizer.push_node(expr)
-        return True
-
-    def ref_branch(self, optimizer):
-        branch = optimizer.peek()
-        if branch.has_data():
-            return False
-        ref, branch = optimizer.rewind(2)
-        branch.mark = ref.mark
-        optimizer.push_node(branch)
-        return True
-
-    def const_branch(self, optimizer):
-        branch = optimizer.peek()
-        if branch.has_data():
-            return False
-        const, branch = optimizer.rewind(2)
-        branch.const = const
-        optimizer.push_node(branch)
-        return True
-
-    def mark_goto(self, optimizer):
-        goto = optimizer.peek()
-        return goto.has_data() and self.mark_final(optimizer)
-
-    def mark_final(self, optimizer):
-        mark, final = optimizer.peek(2)
-        if mark.marked is final:
-            return False
-        mark, final = optimizer.rewind(2)
-        mark.marked = final
-        optimizer.push_node(final)
+    # Helper method to setup a terget for a conditional branch.
+    def push_then_mark(self, optimizer):
+        then = tokens.Token(tokens.Token.THEN)
+        mark = then.mark()
+        self.then_marks.append(mark)
+        optimizer.push_node(then)
         optimizer.push_node(mark)
+
+    # Helper method to compile a data node with a separate optimizer.
+    def compile_data(self, mark, statements, optimizer):
+        # Create new optimizer to compile data statements
+        actions = DataActions()
+        parser = actions.make_parser()
+        opt = optimizer.create_new(parser)
+
+        # Push a final THEN mark as target for any CONT IF statement.
+        actions.push_then_mark(opt)
+
+        # Compile the data statements to a DataBlock.  Add all blocks to the
+        # optimizer.
+        opt.push_node(statements)
+        opt.push_node(mark)
+        opt.compile_to(blocks.DataBlock, optimizer.blocks)
+
+    # Helper method to compile a proc node with a separate optimizer.
+    def compile_proc(self, mark, statements, optimizer):
+        # Create new optimizer to compile data statements
+        actions = ProcActions()
+        parser = actions.make_parser()
+        opt = optimizer.create_new(parser)
+
+        # Add an implicit return statement to the procedure.
+        return_ = tokens.Command(tokens.Command.RETURN)
+        opt.push_node(return_)
+
+        # Push a final THEN mark as target for any CONT IF statement.
+        actions.push_then_mark(opt)
+
+        # Compile the procedure statements to a CodeBlock.  Add all blocks to
+        # the optimizer.
+        opt.push_node(statements)
+        opt.push_node(mark)
+        opt.compile_to(blocks.CodeBlock, optimizer.blocks)
+
+
+# This class implements the actions that have specific behavior in a code
+# context.
+class ProcActions(Actions):
+    # Begin of method section as defined by rules.txt.
+
+    def push_bytes(self, optimizer):
+        bytes = optimizer.rewind()
+        self.compile_as_data(bytes, optimizer)
         return True
 
-    def mark_mark(self, optimizer):
-        mark1, mark2 = optimizer.peek(2)
-        if mark1.marked is mark2.marked:
-            return False
-        mark1, mark2 = optimizer.rewind(2)
-        mark1.marked = mark2.marked
-        optimizer.push_node(mark2)
-        optimizer.push_node(mark1)
+    def push_literal(self, optimizer):
+        literal = optimizer.rewind()
+        self.compile_as_data(literal, optimizer)
         return True
 
-    def compare_not(self, optimizer):
-        compare, not_ = optimizer.rewind(2)
-        op = compare.get_type()
-        if op == tokens.Command.LT:
-            op = tokens.Command.GEQ
-        elif op == tokens.Command.LEQ:
-            op = tokens.Command.GT
-        elif op == tokens.Command.NEQ:
-            op = tokens.Command.EQ
-        elif op == tokens.Command.EQ:
-            op = tokens.Command.NEQ
-        elif op == tokens.Command.GT:
-            op = tokens.Command.LEQ
-        elif op == tokens.Command.GEQ:
-            op = tokens.Command.LT
-        node = tokens.Command(op).from_node(not_)
-        optimizer.push_node(node)
+    # End of method section as defined by rules.txt.  Helper methods follow
+    # below.
+
+    # Helper method to wrap a single node in a Data node and compile it.  This
+    # is used to compile string, chars, float, and bytes nodes in a procedure
+    # context.
+    def compile_as_data(self, node, optimizer):
+        mark = node.mark()
+
+        # Create a Statements node with a single statement.
+        statements = tokens.Statements()
+        statements.append(node)
+
+        # Compile a data block with from this statement.
+        self.compile_data(mark, statements, optimizer)
+
+        # Push a reference to the data block
+        ref = mark.resolve().from_node(node)
+        optimizer.push_node(ref)
         return True
 
-    def goto_mark(self, optimizer):
-        goto, mark = optimizer.peek(2)
-        if goto.mark is not mark:
-            return False
-        optimizer.rewind(2)
-        optimizer.push_node(mark)
+
+# This class implements the actions that have specific behavior in a data
+# context.
+class DataActions(Actions):
+    # Begin of method section as defined by rules.txt.
+
+    def push_bytes(self, optimizer):
+        bytes = optimizer.rewind()
+
+        # Create a new optimizer to compile bytes node statements.
+        actions = DataActions()
+        parser = actions.make_parser()
+        opt = optimizer.create_new(parser)
+
+        # Create a final THEN mark as target for any CONT IF statement.
+        # TODO: This mark is not optimized away if it is not used?  Fix.
+        actions.push_then_mark(opt)
+
+        # Compile the bytes node statements.
+        opt.push_node(bytes.statements)
+        nodes, blocks = opt.compile()
+
+        # Add indirect compiled blocks to the list of optimized blocks.
+        optimizer.extend_blocks(blocks)
+
+        # Create and push a new ByteData node.
+        byte_data = tokens.ByteData(nodes).from_node(bytes)
+        optimizer.push_node(byte_data)
         return True
+
+    def push_literal(self, optimizer):
+        pass
+
+    # End of method section as defined by rules.txt.

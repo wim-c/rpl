@@ -2,24 +2,29 @@
 # lattice.  This is not checked the rule compiler!  For example, this is why
 # compare is explicitly a subtype of binop here.
 
+# Generalization of byte literals.
+literal  :>  chars float string
+
 # Single node reductions.
 push_END           :  END
 push_THEN          :  THEN
 push_bytes         :  bytes
 push_contif        :  contif
 push_data          :  data
-push_define_data   :  define_data
-push_define_macro  :  define_macro
-push_define_proc   :  define_proc
 push_if            :  if
 push_label         :  label
+push_let?          :  let
+push_literal?      :  literal
 push_macro         :  macro
 push_proc          :  proc
-push_proc_body     :  proc_body
 push_program       :  program
 push_statements    :  statements
 push_symbol        :  symbol
-push_words         :  words
+
+# Handle the different let bindings
+let_data   :  let data
+let_macro  :  let macro
+let_proc   :  let proc
 
 # Unary operators.
 unop  :>  int not

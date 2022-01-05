@@ -4,8 +4,8 @@
         " " print
     end
     3 \ [
-        "YABBA!"
-        "DABBA!"
-        "DOO!"
+        ["YABBA!"]
+        ["DABBA!"]
+        ["DOO!"]
     ] on print
 next

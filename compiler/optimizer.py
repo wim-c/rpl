@@ -5,7 +5,7 @@ import actions
 
 
 class Optimizer:
-    def __init__(self, *, blocks=None, errors=None, parser_factory):
+    def __init__(self, *, blocks=None, errors=None, parser):
         super().__init__()
         
         # All compile errors are collected here.
@@ -33,14 +33,13 @@ class Optimizer:
         # nodes.  The parser will return actions to perform from the specified
         # reduction action based on the state transition triggered by a node
         # type.
-        self.parser_factory = parser_factory
-        self.parser = parser_factory()
+        self.parser = parser
 
     # Create an optimizer instance with a nested scope.  This means that all
     # symbols currently in scope are visible to the new optimizer, but it
     # cannot add to the current scope.
-    def create_new(self):
-        opt = Optimizer(errors=self.errors, parser_factory=self.parser_factory)
+    def create_new(self, parser):
+        opt = Optimizer(errors=self.errors, parser=parser)
         opt.scope = scope.Scope(opt, self.scope)
         return opt
 

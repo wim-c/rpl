@@ -1,0 +1,17 @@
+data
+    $ffd2
+    ($ffd2 $ffd2 int)
+
+    cout
+    (cout cout int)
+
+    "Hi there!"
+    'Hi there!'
+    3.1415
+
+    ("Hi there!"
+     'Hi there!'
+     3.1415)
+end
+
+let cout: $ffd2 end

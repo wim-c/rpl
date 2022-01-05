@@ -42,7 +42,9 @@ class Parser:
     def p_statement(self, p):
         '''statement : COMMAND
                 | INTEGER
+                | LITERAL
                 | SYMBOL
+                | bytes
                 | contif
                 | data
                 | if
@@ -53,17 +55,18 @@ class Parser:
 
     # ---
 
+    def p_data_bytes(self, p):
+        'bytes : LPAREN statements RPAREN'
+        p[0] = tokens.Bytes(p[2]).from_node(p[1])
+
     def p_contif(self, p):
         'contif : CONT IF'
         p[0] = tokens.Command(tokens.Command.CONTIF).from_node(p[1])
 
     def p_data(self, p):
-        'data : DATA data_parts END'
+        '''data : DATA statements END
+                | LBRACKET statements RBRACKET'''
         p[0] = tokens.Data(p[2]).from_node(p[1])
-
-    def p_data_data_part(self, p):
-        'data : data_part'
-        p[0] = tokens.Data([p[1]]).from_node(p[1])
 
     def p_if(self, p):
         'if : IF if_blocks END'
@@ -77,28 +80,17 @@ class Parser:
         'let : LET SYMBOL definition'
         p[0] = tokens.Let(p[2], p[3]).from_node(p[1])
 
+    def p_proc(self, p):
+        'proc : DEF statements END'
+        p[0] = tokens.Proc(p[2]).from_node(p[1])
+
     # ---
 
-    def p_data_parts(self, p):
-        'data_parts : data_part'
-        p[0] = [p[1]]
-
-    def p_data_parts_data_part(self, p):
-        'data_parts : data_parts data_part'
-        p[1].append(p[2])
-        p[0] = p[1]
-
-    def p_data_part(self, p):
-        '''data_part : LITERAL
-                | bytes
-                | words'''
-        p[0] = p[1]
-
-    def p_if_statements(self, p):
+    def p_if_blocks(self, p):
         'if_blocks : statements'
         p[0] = [p[1]]
 
-    def p_if_statements_then(self, p):
+    def p_if_blocks_then(self, p):
         'if_blocks : if_blocks THEN statements'
         p[1].append(p[3])
         p[0] = p[1]
@@ -109,20 +101,15 @@ class Parser:
                 | proc'''
         p[0] = p[1]
 
+    def p_definition_data(self, p):
+        '''definition : LITERAL
+                | bytes'''
+        statements = tokens.Statements()
+        statements.append(p[1])
+        p[0] = tokens.Data(statements)
+
     # ---
-
-    def p_bytes(self, p):
-        'bytes : LPAREN statements RPAREN'
-        p[0] = tokens.Bytes(p[2]).from_node(p[1])
-
-    def p_words(self, p):
-        'words : LBRACKET statements RBRACKET'
-        p[0] = tokens.Words(p[2]).from_node(p[1])
 
     def p_macro(self, p):
         'macro : COLON statements END'
         p[0] = tokens.Macro(p[2]).from_node(p[1])
-
-    def p_proc(self, p):
-        'proc : DEF statements END'
-        p[0] = tokens.Proc(p[2]).from_node(p[1])

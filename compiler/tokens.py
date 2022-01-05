@@ -41,7 +41,7 @@ class Node:
 
     # Create a mark for this node as entry in a scope's symbol table.
     def mark(self, name=None):
-        return Mark(self, name)
+        return Mark(self, name).from_node(self)
 
     # Get a node value from a marked object in a scope's symbol table.
     def resolve_mark(self, mark):
@@ -199,6 +199,9 @@ class Chars(Node):
         return address + len(self.value)
 
     def emit_word(self, address, formatter):
+        return self.emit_byte(address, formatter)
+
+    def emit_byte(self, address, formatter):
         code = self.value.encode('latin-1')
         return formatter.emit(address, code, self)
 
@@ -425,21 +428,12 @@ class Data(Node):
     type = 'data'
     mark_id = 0
 
-    def __init__(self, blocks):
+    def __init__(self, statements):
         super().__init__()
-        self.blocks = blocks
+        self.statements = statements
 
-    def make_mark_name(self):
-        if len(self.blocks) == 1:
-            return self.blocks[0].make_mark_name()
-        else:
-            return super().make_mark_name()
-
-    # A data node does not define a new scope.  Move the symbols of all
-    # contained word and byte blocks to an enclosing Statements node.
     def move_symbols(self, statements):
-        for block in self.blocks:
-            block.move_symbols(statements)
+        self.statements.move_symbols(statements)
 
 
 class Expression(Node):
@@ -542,6 +536,9 @@ class Float(Node):
         return address + 5
 
     def emit_word(self, address, formatter):
+        return self.emit_byte(address, formatter)
+
+    def emit_byte(self, address, formatter):
         return formatter.emit(address, self.get_bytes(), self)
 
 
@@ -599,11 +596,12 @@ class Label(Node):
 
 
 class Let(Node):
+    type = 'let'
+
     def __init__(self, symbol, definition):
         super().__init__()
         self.symbol = symbol
         self.definition = definition
-        self.type = f'define_{definition.get_type()}'
 
     def move_symbols(self, statements):
         statements.add_definition(self)
@@ -725,20 +723,6 @@ class Proc(Node):
         super().__init__()
         self.statements = statements
 
-    def get_body(self):
-        return ProcBody(self.statements).from_node(self)
-
-
-# Represents the body statements of a procedure.  This node will be compiled
-# inline into the current code block.  It is typically the last node in the
-# optimizer input, since it ends in an implicit return statement.
-class ProcBody(Node):
-    type = 'proc_body'
-
-    def __init__(self, statements):
-        super().__init__()
-        self.statements = statements
-
 
 # A Program represents the top level statements of an rpl program.  A Program
 # instance is the top node in a parse tree.
@@ -838,6 +822,9 @@ class String(Node):
         return address + min(len(self.value), 0xff) + 1
 
     def emit_word(self, address, formatter):
+        return self.emit_byte(address, formatter)
+
+    def emit_byte(self, address, formatter):
         data = bytes([min(len(self.value), 0xff)]) + self.value[:255].encode('latin-1')
         return formatter.emit(address, data, self)
 
@@ -872,14 +859,3 @@ class Token(Node):
 
     def __str__(self):
         return self.value
-
-
-class Words(Node):
-    type = 'words'
-    mark_id = 0
-
-    def __init__(self, statements):
-        self.statements = statements
-
-    def move_symbols(self, statements):
-        self.statements.move_symbols(statements)

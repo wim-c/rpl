@@ -43,5 +43,5 @@ final  :>  goto return stop
 final_command  :  final command
 final_const    :  final const
 
-# Fold identitical final commands separated by a mark
+# Fold identical final commands separated by a mark
 final_mark?  :  final mark
