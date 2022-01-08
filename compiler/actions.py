@@ -401,7 +401,6 @@ class DataActions(Actions):
         opt = optimizer.create_new(parser)
 
         # Create a final THEN mark as target for any CONT IF statement.
-        # TODO: This mark is not optimized away if it is not used?  Fix.
         actions.push_then_mark(opt)
 
         # Compile the bytes node statements.
