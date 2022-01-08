@@ -3,22 +3,22 @@
 
 class ParseStateMachine:
     transitions = (
-        (('word', 2), ('cond', 1, 2), ('mark', 0, 0), ('goto', 4, 3), ('final', 3), ('gosub', 5, 1)),
-        (('return', 8), ('goto', 9, 3)),
-        (('cond', None, 8), ('=', 6), ('<>', 7)),
-        (('command', None, 11), ('mark', 0, 13, 0), ('const', None, 12)),
-        (('command', None, 11), ('mark', 0, 4, 13, 0), ('const', None, 12)),
-        (('return', None, 7),),
-        (('cond', 1, 9, 2),),
-        (('cond', 1, 10, 2),),
-        (('command', None, 11), ('mark', 0, 6, 13, 0), ('const', None, 12)),
-        (('command', None, 11), ('mark', 0, 5, 4, 13, 0), ('const', None, 12)),
+        (('goto', 1, 4), ('cond', 2, 3), ('final', 3), ('mark', 0, 1), ('word', 4), ('byte_data', None, 0), ('gosub', 5, 2)),
+        (('mark', 0, 5, 14, 1), ('command', None, 12), ('const', None, 13)),
+        (('goto', 6, 4), ('return', 7)),
+        (('mark', 0, 14, 1), ('command', None, 12), ('const', None, 13)),
+        (('cond', None, 9), ('=', 8), ('<>', 9)),
+        (('return', None, 8),),
+        (('mark', 0, 6, 5, 14, 1), ('command', None, 12), ('const', None, 13)),
+        (('mark', 0, 7, 14, 1), ('command', None, 12), ('const', None, 13)),
+        (('cond', 2, 10, 3),),
+        (('cond', 2, 11, 3),),
     )
 
     order = {
         'cond': {'bne', 'beq'},
-        'command': {'#', '=', '.', 'req', '<>', 'sys', '<=', 'input', 'rne', '!', 'and', 'or', '^', 'new', 'beq', 'clr', 'poke', '<', 'gosub', '/', '%', 'str$', 'bne', 'stop', ';', 'chr$', '>', 'for', '@', 'next', '$', 'fn', 'return', 'int', 'goto', '\\', 'print', 'on', 'not', 'peek', '>=', '-', '*', 'get', 'rnd', '+'},
-        'const': {'word', 'ref', 'expr'},
+        'command': {'gosub', 'rnd', 'clr', '$', '<', '/', 'get', '>', 'int', 'next', '^', '<=', 'print', '\\', '#', '>=', 'input', ';', 'chr$', '*', 'new', 'fn', 'on', 'goto', 'return', 'peek', '-', '=', '<>', 'poke', '!', '+', 'bne', 'for', 'sys', 'not', '%', '@', 'beq', '.', 'stop', 'str$', 'req', 'or', 'and', 'rne'},
+        'const': {'expr', 'ref', 'word'},
         'final': {'stop', 'goto', 'return'}
     }
 
@@ -30,6 +30,7 @@ class ParseStateMachine:
         super().__init__()
 
         self.methods = (
+            owner.push_byte_data,
             owner.push_mark,
             owner.push_gosub,
             owner.push_cond,

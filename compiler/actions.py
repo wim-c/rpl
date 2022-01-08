@@ -297,10 +297,8 @@ class Actions:
         optimizer.push_node(word)
         return True
 
-    #
     # End of method section as defined by rules.txt.  Helper methods follow
     # below.
-    #
 
     # Ctreate a parser instance that can be used by an optimizer.  The parser
     # triggers methods on self according to the rules in rules.txt.

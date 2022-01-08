@@ -1,3 +1,6 @@
+# Optimize statements in a ByteData node
+push_byte_data  :  byte_data
+
 # Skip unused marks
 push_mark?  :  mark
 
