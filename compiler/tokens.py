@@ -1,5 +1,6 @@
 import math
 import ops
+import re
 
 # Normalize an integral value to the signed word range.
 def to_word(value):
@@ -7,6 +8,18 @@ def to_word(value):
     if value >= 0x8000:
         value -= 0x10000
     return value
+
+
+# Escape a string
+def escape_string(value):
+    def encode(match):
+        asc, digit = ord(match[1]), match[2]
+        if digit == '':
+            return f'\\{asc}'
+        else:
+            return f'\\{asc:03d}{digit}'
+
+    return re.sub(r'([\x00-\x1f\x80-\x9f])(\d?)', encode, value)
 
 
 # Abstract base class of all objects that can appear in a program.  The type of
@@ -193,7 +206,8 @@ class Chars(Node):
         self.value = value
 
     def __str__(self):
-        return f'\'{self.value}\''
+        value = escape_string(self.value)
+        return f'\'{value}\''
 
     def assign_word_address(self, address):
         return address + len(self.value)
@@ -816,7 +830,8 @@ class String(Node):
         self.value = value
 
     def __str__(self):
-        return f'"{self.value}"'
+        value = escape_string(self.value)
+        return f'"{value}"'
 
     def assign_word_address(self, address):
         return address + min(len(self.value), 0xff) + 1

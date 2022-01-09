@@ -12,6 +12,12 @@ data
     ("Hi there!"
      'Hi there!'
      3.1415)
+
+    "Line 1\13Line 2"
+    'Line 1\13Line 2'
+
+    "1: A line\0132: Another line"
+    '1: A line\0132: Another line'
 end
 
 let cout: $ffd2 end
