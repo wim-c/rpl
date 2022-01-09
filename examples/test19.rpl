@@ -13,8 +13,8 @@ data
      'Hi there!'
      3.1415)
 
-    "Line 1\13Line 2"
-    'Line 1\13Line 2'
+    "Line 1\13Line 2 \34Foo!\34 'Bar!'"
+    'Line 1\13Line 2 \39Foo!\39 "Bar"!'
 
     "1: A line\0132: Another line"
     '1: A line\0132: Another line'

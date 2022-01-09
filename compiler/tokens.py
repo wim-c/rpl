@@ -11,7 +11,7 @@ def to_word(value):
 
 
 # Escape a string
-def escape_string(value):
+def escape_string(pattern, value):
     def encode(match):
         asc, digit = ord(match[1]), match[2]
         if digit == '':
@@ -19,7 +19,7 @@ def escape_string(value):
         else:
             return f'\\{asc:03d}{digit}'
 
-    return re.sub(r'([\x00-\x1f\x80-\x9f])(\d?)', encode, value)
+    return re.sub(pattern, encode, value)
 
 
 # Abstract base class of all objects that can appear in a program.  The type of
@@ -206,7 +206,7 @@ class Chars(Node):
         self.value = value
 
     def __str__(self):
-        value = escape_string(self.value)
+        value = escape_string(r"(['\x00-\x1f\x80-\x9f])(\d?)", self.value)
         return f'\'{value}\''
 
     def assign_word_address(self, address):
@@ -830,7 +830,7 @@ class String(Node):
         self.value = value
 
     def __str__(self):
-        value = escape_string(self.value)
+        value = escape_string(r'(["\x00-\x1f\x80-\x9f])(\d?)', self.value)
         return f'"{value}"'
 
     def assign_word_address(self, address):
