@@ -49,6 +49,24 @@ class Actions:
         optimizer.push_node(expr)
         return True
 
+    def const_const_over(self, optimizer):
+        const1, const2, over = optimizer.peek(3)
+        optimizer.rewind()
+        optimizer.push_node(const1)
+        return True
+
+    def const_const_swap(self, optimizer):
+        const1, const2, swap = optimizer.rewind(3)
+        optimizer.push_node(const1)
+        optimizer.push_node(const2)
+        return True
+
+    def const_dup(self, optimizer):
+        const, dup = optimizer.peek(2)
+        optimizer.rewind()
+        optimizer.push_node(const)
+        return True
+
     def const_unop(self, optimizer):
         const, unop = optimizer.rewind(2)
         expr = tokens.Expression([const]).from_node(unop)

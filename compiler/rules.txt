@@ -74,3 +74,12 @@ compare  :>  < <= <> = > >=
 
 # Simplify negated boolean operators
 compare_not  :  compare not
+
+# Simplify dup of a compile time constant
+const_dup : const #
+
+# Simplify over of a compile time constant
+const_const_over : const const ;
+
+# Simplify swap of compile time constsnts
+const_const_swap : const const %
