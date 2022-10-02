@@ -17,17 +17,19 @@ syntax_tokens = {
     'CONT': 'CONT',
     'DATA': 'DATA',
     'DEF': 'DEF',
+    'ELSE': 'ELSE',
     'END': 'END',
     'IF': 'IF',
     'LET': 'LET',
-    'THEN': 'THEN',
+    'THEN': 'ELSE',     # THEN is a synonym for ELSE in RPL.
     'cont': 'CONT',
     'data': 'DATA',
     'def': 'DEF',
+    'else': 'ELSE',
     'end': 'END',
     'if': 'IF',
     'let': 'LET',
-    'then': 'THEN',
+    'then': 'ELSE',     # THEN is a synonym for ELSE in RPL.
 }
 
  
@@ -35,6 +37,8 @@ syntax_tokens = {
 commands = {
     'AND',
     'CLR',
+    'DROP',
+    'DUP',
     'FN',
     'FOR',
     'GET',
@@ -42,19 +46,28 @@ commands = {
     'GOTO',
     'INPUT',
     'INT',
+    'MOD',
     'NEXT',
     'NOT',
     'ON',
     'OR',
+    'OVER',
     'PEEK'
+    'PICK'
     'POKE',
     'PRINT',
     'RETURN',
     'RND',
+    'ROLL',
+    'ROT',
     'STOP',
+    'SWAP',
     'SYS',
+    'XOR',
     'and',
     'clr',
+    'drop',
+    'dup',
     'fn',
     'for',
     'get',
@@ -62,17 +75,38 @@ commands = {
     'goto',
     'input',
     'int',
+    'mod',
     'next',
     'not',
     'on',
     'or',
+    'over',
     'peek',
+    'pick',
     'poke',
     'print',
     'return',
     'rnd',
+    'roll',
+    'rot',
     'stop',
+    'swap',
     'sys',
+    'xor',
+}
+
+
+aliases = {
+    '#': 'dup',
+    '$': 'roll',
+    '%': 'swap',
+    '&': 'gosub',
+    '.': 'drop',
+    '/\\': '/mod',
+    ';': 'over',
+    '?': 'print',
+    '\\': 'mod',
+    '^': 'pick',
 }
 
 
@@ -85,12 +119,10 @@ def make_token(t):
 def make_command(t):
     t.type = 'COMMAND'
 
-    if t.value == '?':
-        t.value = 'print'
-    elif t.value == '&':
-        t.value = 'gosub'
+    value = t.value.lower()
+    value = aliases.get(value, value)
 
-    t.value = tokens.Command(t.value.lower()).from_token(t)
+    t.value = tokens.Command(value).from_token(t)
     return t
 
 
@@ -137,6 +169,7 @@ class Lexer:
         'CONT',
         'DATA',
         'DEF',
+        'ELSE',
         'END',
         'IF',
         'INTEGER',
@@ -147,7 +180,6 @@ class Lexer:
         'RBRACKET',
         'RPAREN',
         'SYMBOL',
-        'THEN',
     )
 
     t_ignore = ' \t\r'
@@ -214,6 +246,10 @@ class Lexer:
     def t_number_2(self, t):
         r'-?\.\d+(?:[eE][-+]?\d+)?'
         return make_number(t)
+
+    def t_divmod(self, t):
+        r'/(?:mod|MOD|\\)'
+        return make_command(t)
 
     def t_command_op(self, t):
         r'<[=>]?|>=?|[-!@#$%^&*+=;\\.?/]'

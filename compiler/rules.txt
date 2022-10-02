@@ -30,7 +30,7 @@ let_proc   :  let proc
 unop  :>  int not
 
 # Binary operators.
-binop  :>  * + - / \ and or compare
+binop  :>  * + - / mod and or xor compare
 
 # Unary operators on words.
 word_unop  :  word unop
@@ -76,10 +76,10 @@ compare  :>  < <= <> = > >=
 compare_not  :  compare not
 
 # Simplify dup of a compile time constant
-const_dup : const #
+const_dup : const dup
 
 # Simplify over of a compile time constant
-const_const_over : const const ;
+const_const_over : const const over
 
 # Simplify swap of compile time constsnts
-const_const_swap : const const %
+const_const_swap : const const swap

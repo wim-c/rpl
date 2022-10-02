@@ -1,0 +1,3 @@
+let name [0]
+"WHAT IS YOUR NAME? " print input name !
+"HELLO " print name @ print "!\13" print

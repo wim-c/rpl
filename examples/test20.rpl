@@ -1,0 +1,55 @@
+REM
+REM reverse video random rectangles on the screen.
+REM
+
+loop:
+    draw gosub
+    loop goto
+
+let draw def
+    REM random xstart position from 0 to 39
+    REM ( - xstart)
+    rnd width mod
+
+    REM random width from 1 to 40-xstart
+    REM (xstart - xstart cols)
+    rnd over width - mod
+
+    REM random ystart position from 0 to 24
+    REM (xstart cols - xstart cols ystart)
+    rnd height mod
+
+    REM random height from 1 to 25-ystart
+    REM (xstart cols ystart - xstart cols ystart rows)
+    rnd over height - mod
+
+    REM compute address of top left corner
+    REM (xstart cols ystart rows - cols rows topleft)
+    swap width * 4 roll + screen +
+
+    REM draw each line
+    REM (cols rows topleft - cols topleft)
+    swap 0 for
+        REM compute end of line
+        REM (cols topleft - cols topleft topright)
+        over over +
+
+        REM draw each column
+        REM (cols topleft topright - cols topleft)
+        over for
+            fn peek reversebit xor fn poke
+        next
+
+        REM move to next row
+        width +
+    next
+
+    REM clean up
+    drop drop
+end
+
+REM constants
+let width: 40 end
+let height: 25 end
+let screen: $8000 end
+let reversebit: $80 end

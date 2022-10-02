@@ -91,7 +91,7 @@ class Parser:
         p[0] = [p[1]]
 
     def p_if_blocks_then(self, p):
-        'if_blocks : if_blocks THEN statements'
+        'if_blocks : if_blocks ELSE statements'
         p[1].append(p[3])
         p[0] = p[1]
 

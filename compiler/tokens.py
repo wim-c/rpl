@@ -2,6 +2,7 @@ import math
 import ops
 import re
 
+
 # Normalize an integral value to the signed word range.
 def to_word(value):
     value = value & 0xffff
@@ -227,12 +228,13 @@ class Command(Node):
     AND = 'and'
     BEQ = 'beq'
     BNE = 'bne'
-    CONTIF = 'contif'
     CHR = 'chr$'
     CLR = 'clr'
+    CONTIF = 'contif'
     DIV = '/'
-    DROP = '.'
-    DUP = '#'
+    DIVMOD = '/mod'
+    DROP = 'drop'
+    DUP = 'dup'
     EQ = '='
     FETCH = '@'
     FN = 'fn'
@@ -246,7 +248,7 @@ class Command(Node):
     INT = 'int'
     LEQ = '<='
     LT = '<'
-    MOD = '\\'
+    MOD = 'mod'
     MUL = '*'
     NEQ = '<>'
     NEW = 'new'
@@ -254,22 +256,24 @@ class Command(Node):
     NOT = 'not'
     ON = 'on'
     OR = 'or'
-    OVER = ';'
+    OVER = 'over'
     PEEK = 'peek'
-    PICK = '^'
+    PICK = 'pick'
     POKE = 'poke'
     PRINT = 'print'
     REQ = 'req'
     RETURN = 'return'
     RND = 'rnd'
     RNE = 'rne'
-    ROLL = '$'
+    ROLL = 'roll'
+    ROT = 'rot'
     STOP = 'stop'
     STORE = '!'
     STR = 'str$'
     SUB = '-'
-    SWAP = '%'
+    SWAP = 'swap'
     SYS = 'sys'
+    XOR = 'xor'
 
     def __init__(self, type, *, command=None, mark=None, const=None):
         super().__init__()
@@ -373,7 +377,8 @@ Command.ops = {
     Command.NEQ: ops.binop_neq,
     Command.NOT: ops.unop_not,
     Command.OR: ops.binop_or,
-    Command.SUB: ops.binop_sub
+    Command.SUB: ops.binop_sub,
+    Command.XOR: ops.binop_xor
 }
 
 def counter(start):
@@ -388,52 +393,55 @@ def counter(start):
 step = counter(0xc3)
 
 Command.code = {
-    Command.ADD: step(),
-    Command.AND: step(),
-    Command.BEQ: step(3) - 1,
-    Command.BNE: step(3) - 1,
-    Command.GOSUB: step(4),
-    Command.CHR: step(),
-    Command.CLR: step(),
-    Command.DIV: step(),
-    Command.DROP: step(),
-    Command.DUP: step(),
-    Command.EQ: step(),
-    Command.FETCH: step(),
-    Command.FN: step(),
-    Command.FOR: step(),
-    Command.GEQ: step(),
-    Command.GET: step(),
-    Command.GOTO: step(4),
-    Command.GT: step(),
-    Command.INPUT: step(),
-    Command.INT: step(),
-    Command.LEQ: step(),
-    Command.LT: step(),
-    Command.MOD: step(),
-    Command.MUL: step(),
-    Command.NEQ: step(),
-    Command.NEW: step(),
-    Command.NEXT: step(),
-    Command.NOT: step(),
-    Command.ON: step(),
-    Command.OR: step(),
-    Command.OVER: step(),
-    Command.PEEK: step(),
-    Command.PICK: step(),
-    Command.POKE: step(),
-    Command.PRINT: step(),
-    Command.REQ: step(),
-    Command.RETURN: step(),
-    Command.RND: step(),
-    Command.RNE: step(),
-    Command.ROLL: step(),
-    Command.STOP: step(),
-    Command.STORE: step(),
-    Command.STR: step(),
-    Command.SUB: step(),
-    Command.SWAP: step(),
-    Command.SYS: step(),
+    Command.ADD: step(),        # c3
+    Command.AND: step(),        # c4
+    Command.BEQ: step(3) - 1,   # c5 (abs) c6 (rel -ve) c7 (rel +ve)
+    Command.BNE: step(3) - 1,   # c8 (abs) c9 (rel -ve) ca (rel +ve)
+    Command.CHR: step(),        # cb
+    Command.CLR: step(),        # cc
+    Command.DIV: step(),        # cd
+    Command.DIVMOD: step(),     # ce
+    Command.DROP: step(),       # cf
+    Command.DUP: step(),        # d0
+    Command.EQ: step(),         # d1
+    Command.FETCH: step(),      # d2
+    Command.FN: step(),         # d3
+    Command.FOR: step(),        # d4
+    Command.GEQ: step(),        # d5
+    Command.GET: step(),        # d6
+    Command.GOSUB: step(4),     # d7 (stk) d8 (abs) d9 (rel -ve) da (rel +ve)
+    Command.GOTO: step(4),      # db (stk) dc (abs) dd (rel -ve) de (rel +ve)
+    Command.GT: step(),         # df
+    Command.INPUT: step(),      # e0
+    Command.INT: step(),        # e1
+    Command.LEQ: step(),        # e2
+    Command.LT: step(),         # e3
+    Command.MOD: step(),        # e4
+    Command.MUL: step(),        # e5
+    Command.NEQ: step(),        # e6
+    Command.NEW: step(),        # e7
+    Command.NEXT: step(),       # e8
+    Command.NOT: step(),        # e9
+    Command.ON: step(),         # ea
+    Command.OR: step(),         # eb
+    Command.OVER: step(),       # ec
+    Command.PEEK: step(),       # ed
+    Command.PICK: step(),       # ee
+    Command.POKE: step(),       # ef
+    Command.PRINT: step(),      # f0
+    Command.REQ: step(),        # f1
+    Command.RETURN: step(),     # f2
+    Command.RND: step(),        # f3
+    Command.RNE: step(),        # f4
+    Command.ROLL: step(),       # f5
+    Command.ROT: step(),        # f6
+    Command.STOP: step(),       # f7
+    Command.STORE: step(),      # f8
+    Command.STR: step(),        # f9
+    Command.SUB: step(),        # fa
+    Command.SWAP: step(),       # fb
+    Command.SYS: step(),        # fc
+    Command.XOR: step(),        # fd
 }
 
 # Suequence of data blocks that together form a single block of data

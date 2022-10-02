@@ -32,9 +32,9 @@ word_eq_cond?  :  word = cond
 word_neq_cond?  :  word <> cond
 
 # Commands
-command  :>  ! # $ % * + - . / ; < <= <> = > >= @ \ ^ and beq bne chr$ clr fn
-command  :>  for get gosub goto input int new next not on or peek poke print
-command  :>  req return rnd rne stop str$ sys
+command  :>  ! * + - / /mod < <= <> = > >= @ and beq bne chr$ clr drop dup fn
+command  :>  for get gosub goto input int mod new next not on or over peek
+command  :>  pick poke print req return rnd rne roll rot stop str$ swap sys xor
 
 # Constants
 const  :>  expr ref word

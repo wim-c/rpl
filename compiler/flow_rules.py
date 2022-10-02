@@ -3,23 +3,23 @@
 
 class ParseStateMachine:
     transitions = (
-        (('goto', 1, 4), ('cond', 2, 3), ('final', 3), ('mark', 0, 1), ('word', 4), ('byte_data', None, 0), ('gosub', 5, 2)),
-        (('mark', 0, 5, 14, 1), ('command', None, 12), ('const', None, 13)),
-        (('goto', 6, 4), ('return', 7)),
-        (('mark', 0, 14, 1), ('command', None, 12), ('const', None, 13)),
+        (('goto', 2, 4), ('final', 1), ('byte_data', None, 0), ('word', 4), ('gosub', 5, 2), ('mark', 0, 1), ('cond', 3, 3)),
+        (('const', None, 13), ('command', None, 12), ('mark', 0, 14, 1)),
+        (('const', None, 13), ('command', None, 12), ('mark', 0, 5, 14, 1)),
+        (('return', 6), ('goto', 7, 4)),
         (('cond', None, 9), ('=', 8), ('<>', 9)),
         (('return', None, 8),),
-        (('mark', 0, 6, 5, 14, 1), ('command', None, 12), ('const', None, 13)),
-        (('mark', 0, 7, 14, 1), ('command', None, 12), ('const', None, 13)),
-        (('cond', 2, 10, 3),),
-        (('cond', 2, 11, 3),),
+        (('const', None, 13), ('command', None, 12), ('mark', 0, 7, 14, 1)),
+        (('const', None, 13), ('command', None, 12), ('mark', 0, 6, 5, 14, 1)),
+        (('cond', 3, 10, 3),),
+        (('cond', 3, 11, 3),),
     )
 
     order = {
         'cond': {'bne', 'beq'},
-        'command': {'gosub', 'rnd', 'clr', '$', '<', '/', 'get', '>', 'int', 'next', '^', '<=', 'print', '\\', '#', '>=', 'input', ';', 'chr$', '*', 'new', 'fn', 'on', 'goto', 'return', 'peek', '-', '=', '<>', 'poke', '!', '+', 'bne', 'for', 'sys', 'not', '%', '@', 'beq', '.', 'stop', 'str$', 'req', 'or', 'and', 'rne'},
+        'command': {'/', 'mod', 'return', 'or', 'beq', 'print', '@', 'bne', 'xor', '-', 'on', 'dup', '<>', 'int', 'goto', 'str$', 'swap', 'get', 'not', 'req', 'rne', 'input', 'clr', 'drop', '*', 'poke', 'rot', 'peek', 'next', 'pick', '/mod', 'roll', 'gosub', '=', '>=', 'rnd', '<', 'and', 'over', 'new', 'sys', '!', 'fn', '>', 'for', 'stop', '+', '<=', 'chr$'},
         'const': {'expr', 'ref', 'word'},
-        'final': {'stop', 'goto', 'return'}
+        'final': {'goto', 'return', 'stop'}
     }
 
     @classmethod

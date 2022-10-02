@@ -176,13 +176,10 @@ push15      cmp #$40        ; Check sign.
 !word exec_bnea
 !word exec_bnen
 !word exec_bnep
-!word exec_call
-!word exec_calla
-!word exec_calln
-!word exec_callp
 !word exec_chr
 !word exec_clr
 !word exec_div
+!word exec_divmod
 !word exec_drop
 !word exec_dup
 !word exec_eq
@@ -191,6 +188,10 @@ push15      cmp #$40        ; Check sign.
 !word exec_for
 !word exec_ge
 !word exec_get
+!word exec_gosub
+!word exec_gosuba
+!word exec_gosubn
+!word exec_gosubp
 !word exec_goto
 !word exec_gotoa
 !word exec_goton
@@ -218,12 +219,14 @@ push15      cmp #$40        ; Check sign.
 !word exec_rnd
 !word exec_rne
 !word exec_roll
+!word exec_rot
 !word exec_stop
 !word exec_store
 !word exec_str
 !word exec_sub
 !word exec_swap
 !word exec_sys
+!word exec_xor
 
 ;
 ; Push absolute word.  The two byte parameter encodes the word in big endian.
@@ -300,6 +303,58 @@ iszero          inx
                 lda pslo,x      ; Pull lo byte.
                 ora pshi,x      ; Pull hi byte and derive z from (lo OR hi).
                 rts
+
+;
+; Push next-1 on return stack, pop tos and set it as pc.  Here next is the
+; address of the next opcode.
+;
+exec_gosub      tya             ; Push pc-1 as return address.
+                sec
+                sbc #1
+                sta ea
+                lda pc+1
+                sbc #0
+                pha
+                lda ea
+                pha
+                jmp exec_goto   ; Goto address on parameter stack.
+
+;
+; Push next-1 on return stack and set pc to target.  Here next is the address
+; of the next opcode and target is encoded as a two byte big endian parameter.
+;
+exec_gosuba     tya             ; Push pc+1 as return address.
+                clc
+                adc #1
+                sta ea
+                lda pc+1
+                adc #0
+                pha
+                lda ea
+                pha
+                jmp exec_gotoa  ; Goto address.
+
+;
+; Push next-1 on return stack and set pc to target.  Here next is the address
+; of the next opcode and target is next-2-offset where offset is encoded as an
+; unsigned single byte parameter.
+;
+exec_gosubn     lda pc+1        ; Push pc as return address.
+                pha
+                tya
+                pha
+                jmp exec_goton  ; Goto backward relative address.
+
+;
+; Push next-1 on return stack and set pc to target.  Here next is the address
+; of the next opcode and target is next+offset where offset is encoded as an
+; unsigned single byte parameter.
+;
+exec_gosubp     lda pc+1        ; Push pc as return address.
+                pha
+                tya
+                pha
+                jmp exec_gotop  ; Goto forward relative address.
 
 ;
 ; Pop tos and set it as pc.
@@ -429,58 +484,6 @@ exec_return     pla             ; Pull lo byte in y register.
                 jmp decodenext  ; Decode next opcode.
 
 ;
-; Push next-1 on return stack, pop tos and set it as pc.  Here next is the
-; address of the next opcode.
-;
-exec_call       tya             ; Push pc-1 as return address.
-                sec
-                sbc #1
-                sta ea
-                lda pc+1
-                sbc #0
-                pha
-                lda ea
-                pha
-                jmp exec_goto   ; Goto address on parameter stack.
-
-;
-; Push next-1 on return stack and set pc to target.  Here next is the address
-; of the next opcode and target is encoded as a two byte big endian parameter.
-;
-exec_calla      tya             ; Push pc+1 as return address.
-                clc
-                adc #1
-                sta ea
-                lda pc+1
-                adc #0
-                pha
-                lda ea
-                pha
-                jmp exec_gotoa  ; Goto address.
-
-;
-; Push next-1 on return stack and set pc to target.  Here next is the address
-; of the next opcode and target is next-2-offset where offset is encoded as an
-; unsigned single byte parameter.
-;
-exec_calln      lda pc+1        ; Push pc as return address.
-                pha
-                tya
-                pha
-                jmp exec_goton  ; Goto backward relative address.
-
-;
-; Push next-1 on return stack and set pc to target.  Here next is the address
-; of the next opcode and target is next+offset where offset is encoded as an
-; unsigned single byte parameter.
-;
-exec_callp      lda pc+1        ; Push pc as return address.
-                pha
-                tya
-                pha
-                jmp exec_gotop  ; Goto forward relative address.
-
-;
 ; Helper code to transform input byte in y register into hex character in acc.
 ;
 hi_ascii        tya             ; Copy input to acc.
@@ -540,7 +543,9 @@ exec_clr        stx savex       ; Save x register.
 
 ;
 ; Routine to compute quotient and remainder of abs(nos) divided by abs(tos).
-; Drops tos.  The quotient and remainder are left in lw and hw respectively.
+; The remainder is never negative.  Drops tos and saves and clobbers the y
+; register.  Stores the denominator in ea.  The quotient and remainder are left
+; in lw and hw respectively.
 ;
 divmod          inx             ; Store denominator in ea.
                 lda pslo,x
@@ -555,10 +560,9 @@ divmod          inx             ; Store denominator in ea.
                 lda #0
                 sbc ea+1
                 sta ea+1
-+               inx
-                lda pslo,x      ; Store numerator in lw.
++               lda pslo+1,x    ; Store numerator in lw.
                 sta lw
-                lda pshi,x  
+                lda pshi+1,x  
                 sta lw+1
                 bpl +           ; Branch if non-negative.
                 clc             ; Compute denominator - numerator - 1 in lw
@@ -594,31 +598,70 @@ divmod          inx             ; Store denominator in ea.
                 bcs -           ; Branch to next iteration.
 
                 ; Finish up.
-+               ldx savex       ; Restore registers.
-                ldy savey
++               ldx savex       ; Restore x register.
                 rts
 
 ;
-; Compute quotient of nos divided by tos and round to zero.  Drops tos and nos
-; and pushes the result.
+; Return sign fixed remainder in a;y.
+; 
+fixr            lda pshi+1,x    ; Check sign of numerator.
+                bmi +           ; Branch if negative.
+                ldy hw          ; Load remainder in a;y.
+                lda hw+1
+                rts
++               clc
+                lda ea          ; Load abs(denominator).
+                sbc hw          ; Subtract remainder + 1.
+                tay             ; Result in a;y.
+                lda ea+1
+                sbc hw+1
++               rts
+
+;
+; Return sign fixed quotient in a;y.
+;
+fixq            lda pshi,x      ; Sign of division is the exclusive or of the
+                eor pshi+1,x    ; signs of tos and nos.
+                bmi +           ; Branch if negative.
+                ldy lw          ; Load quotient in a;y.
+                lda lw+1
+                rts
++               sec             ; Negate quotient and load in a;y.
+                lda #0
+                sbc lw
+                tay
+                lda #0
+                sbc lw+1
+                rts
+
+;
+; Compute quotient of nos divided by tos rounded such that the remainder is
+; non-negative.  Drop tos and nos and push the result.
 ;
 exec_div        jsr divmod      ; Compute quotient and remainder.
-                dex             ; Restore nos.
-                lda pshi,x      ; Check sign of result.  (Bit 15 of tos EOR bit
-                eor pshi+1,x    ; 15 of nos).
-                bmi +           ; Branch if result is negative.
-                lda lw          ; Push lo byte of quotient.
+                jsr fixq        ; Load quotient in a;y.
+                sta pshi+1,x    ; Push quotient.
+                tya
                 sta pslo+1,x
-                lda lw+1        ; Push hi byte of quotient.
-                sta pshi+1,x
+                ldy savey       ; Restore y register.
                 jmp decode      ; Decode next opcode.
-+               sec             ; Negate and push result.
-                lda #0          ; Push lo byte of negated quotient.
-                sbc lw
+
+;
+; Compute quotient and remainder of nos divided by tos rounded such that the
+; remainder is always non-negative.  Drops tos and nos and pushes the remainder
+; and the quotient.
+;
+exec_divmod     jsr divmod      ; Compute quotient and remainder.
+                jsr fixq        ; Load quotient in a;y.
+                sta pshi,x      ; Store quotient as tos.
+                tya
+                sta pslo,x
+                jsr fixr        ; Load remainder in a;y.
+                sta pshi+1,x    ; Store remainder as nos.
+                tya
                 sta pslo+1,x
-                lda #0          ; Push hi byte of negated quotient.
-                sbc lw+1
-                sta pshi+1,x
+                dex             ; Correct stack pointer.
+                ldy savey       ; Restore y register.
                 jmp decode      ; Decode next opcode.
 
 ;
@@ -756,7 +799,7 @@ exec_fn         sty savey       ; Save y register.
                 sta pslo,y
                 tya             ; Restore param stack pointer.
                 tax
-                dex
+                dex             ; Adjust param stack pointer to new tos.
                 ldy savey       ; Restore y register.
                 jmp decode      ; Decode next opcode.
 
@@ -834,26 +877,15 @@ exec_int        inx
                 jmp decode      ; Decode next opcode.
 
 ;
-; Compute the remainder after dividing nos by tos and rounding to zero.  The
-; remainder will have the same sign as nos.  Drops tos and nos and pushes the
-; result.
+; Compute the remainder after dividing nos by tos rounded such that the
+; remainder is always non-negative.  Drop tos and nos and pushes the result.
 ;
 exec_mod        jsr divmod      ; Compute quotient and remainder.
-                dex             ; Restore nos.
-                lda pshi+1,x    ; Check sign of nos.
-                bmi +           ; Branch if nos is negative.
-                lda hw          ; Push lo byte of remainder.
+                jsr fixr        ; Load remainder in a;y.
+                sta pshi+1,x    ; Push remainder.
+                tya
                 sta pslo+1,x
-                lda hw+1        ; Push hi byte of remainder.
-                sta pshi+1,x
-                jmp decode      ; Decode next opcode.
-+               clc             ; Correct remainder r as abs(d) - r - 1.
-                lda ea          ; abs(d) is in ea, r is in hw.
-                sbc hw
-                sta pslo+1,x
-                lda ea+1
-                sbc hw+1
-                sta pshi+1,x
+                ldy savey       ; Restore y register.
                 jmp decode      ; Decode next opcode.
 
 ;
@@ -920,8 +952,7 @@ exec_next       stx savex       ; Save param steck pointer.
                 inc st+1,x
 +               lda st+5,x      ; Set program counter to start of for block.
                 sta pc+1
-                lda st+4,x
-                tay
+                ldy st+4,x
 -               ldx savex       ; Restore param stack pointer.
                 jmp decode      ; Decode next opcode.
 ++              lda st+3,x      ; Compare hi bytes of upper bound and
@@ -1128,6 +1159,29 @@ exec_roll       inx             ; Store param stack pointer for arithmetic.
 +               jmp decode      ; Decode next opcode.
 
 ;
+; Pop element before nos (nnos) from the parameter stack and push it as tos.
+;
+exec_rot        inx
+                sty savey       ; Save y register.
+                ldy pslo+2,x    ; Store low byte of nnos in y register.
+                lda pslo+1,x    ; Move low bytes of nos and tos one position
+                sta pslo+2,x    ; further down the stack.
+                lda pslo,x
+                sta pslo+1,x
+                tya             ; Store y in low byte of tos.
+                sta pslo,x
+                ldy pshi+2,x    ; Store high byte of nnos in y register.
+                lda pshi+1,x    ; Move high bytes of nos and tos one position
+                sta pshi+2,x    ; further down the stack.
+                lda pshi,x
+                sta pshi+1,x
+                tya             ; Store y in high byte of tos.
+                sta pshi,x
+                ldy savey       ; Restore y register.
+                dex
+                jmp decode      ; Decode next opcode.
+
+;
 ; Store nos as word at addres indicated by tos.  Drop tos and nos.
 ;
 exec_store      inx             ; Pop tos and store into ea.
@@ -1283,4 +1337,16 @@ exec_sys        inx             ; Move tos into ea.
 }
                 ldx savex       ; Restore registers.
                 ldy savey
+                jmp decode      ; Decode next opcode.
+
+;
+; Pop tos and nos and push (tos XOR nos).
+;
+exec_xor        inx
+                lda pslo+1,x
+                eor pslo,x      ; Logical xor of lo bytes of nos and tos.
+                sta pslo+1,x    ; Store as lo byte of nos.
+                lda pshi+1,x
+                eor pshi,x      ; Logical and of hi bytes of nos and tos.
+                sta pshi+1,x    ; Store as hi byte of nos.
                 jmp decode      ; Decode next opcode.
