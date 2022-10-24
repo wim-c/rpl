@@ -219,7 +219,7 @@ class Lexer:
         return make_command(t)
 
     def t_SYMBOL(self, t):
-        r'[a-zA-Z][a-zA-Z0-9]*'
+        r'[_a-zA-Z][_a-zA-Z0-9]*'
         if t.value in syntax_tokens:
             return make_token(t)
         if t.value in commands:
