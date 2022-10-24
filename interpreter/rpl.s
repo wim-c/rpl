@@ -370,11 +370,13 @@ exec_goto       inx
 ; Set pc to address encoded as big endian word parameter.
 ;
 exec_gotoa      lda (pc),y      ; Get hi byte.
-                sta pc+1        ; Store as page of pc.
+                sta ea+1        ; Save hi byte (pc cannot be adjusted yet).
                 iny             ; Increment pc.
                 beq +           ; Handle page boundary.
 -               lda (pc),y      ; Get lo byte.
                 tay             ; Set pc offset.
+                lda ea+1        ; Get hi byte.
+                sta pc+1        ; Set hi byte of pc.
                 jmp decode      ; Decode next opcode.
 +               inc pc+1
                 bne -
