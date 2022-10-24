@@ -47,41 +47,122 @@ let edit_mode def
     REM "EDIT | SPACE CRSR (G)O (S)TEP (C)LEAR"
     "\5\4\9\20 \66 \19\16\1\3\5 \3\18\19\18 (\7)\15 (\19)\20\5\16 (\3)\12\5\1\18" show_banner gosub
 
+    REM show the cross hair.
+    show_cross_hair gosub
+
     REM handle key presses in edit mode.
     let process_edit_key def
         dup key_left = if
-            move_left
+            move_left 1
         else dup key_h = cont if
-            move_left
+            move_left 1
         else dup key_right = cont if
-            move_right
+            move_right 1  
         else dup key_l = cont if
-            move_right
+            move_right 1
         else dup key_up = cont if
-            move_up
+            move_up 1
         else dup key_k = cont if
-            move_up
+            move_up 1
         else dup key_down = cont if
-            move_down
+            move_down 1
         else dup key_j = cont if
-            move_down
+            move_down 1
         else dup key_space = cont if
-            toggle_cell
+            toggle_cell 0
         else dup key_c = cont if
-            clear_field
+            clear_field 1
         else dup key_s = cont if
-            next_gen_single_step_mode set_mode_request
+            next_gen_single_step_mode set_mode_request 1
         else dup key_g = cont if
-            loop_mode set_mode_request
+            loop_mode set_mode_request 1
         else
-            noop
+            noop 0
         end
+
+        REM check if cross hair must be hidden or redrawn.
+        if
+            REM first hide cross hair.
+            hide_cross_hair gosub
+
+            REM then enable the cross hair after the key action has been
+            REM executed and edit mode is still active.
+            show_cross_hair mode_request !
+        end
+    end
+
+    REM show the cross hair and save the hidden screen characters.
+    let show_cross_hair def
+        REM get cursor address
+        cursor gosub
+
+        REM save and replace top character by vbar
+        ypos @ dup if
+            over screen_width -
+            dup peek save_up poke
+            vbar swap poke
+        end
+
+        REM save and replace bottom character by vbar
+        field_height 1 - <> if
+            vbar
+            over screen_width +
+            dup peek save_down poke
+            poke
+        end
+
+        REM save and replace left character by hbar
+        xpos @ dup if
+            over 1 -
+            dup peek save_left poke
+            hbar swap poke
+        end
+
+        REM save and replace right character by hbar
+        screen_width 1 - <> if
+            hbar
+            over 1 +
+            dup peek save_right poke
+            poke
+        end
+
+        REM drop cursor address
+        drop
+    end
+
+    REM hide cross hair by restoring characters.
+    let hide_cross_hair def
+        REM get cursor address
+        cursor gosub
+        
+        REM restore top character.
+        ypos @ dup if
+            over screen_width - save_up peek swap poke
+        end
+
+        REM restore bottom character.
+        field_height 1 - <> if
+            save_down peek over screen_width + poke
+        end
+        
+        REM restore left character.
+        xpos @ dup if
+            over 1 - save_left peek swap poke
+        end
+
+        REM restore right character.
+        screen_width 1 - <> if
+            save_right peek over 1 + poke
+        end
+
+        REM drop cursor address.
+        drop
     end
 
     REM toggle cell under cursor.
     let toggle_cell def
         REM compute cell address.
-        screen ypos @ screen_width * + xpos @ +
+        cursor gosub
 
         REM toggle cell content.
         dup peek space = if
@@ -116,15 +197,32 @@ let edit_mode def
 
     REM clear the play field.
     let clear_field def
-        screen field_height screen_width * 1 - + screen for
+        field_end 1 - screen for
             space fn poke
         next
     end
 
+    REM get cursor address.
+    let cursor def
+        screen screen_width ypos @ * + xpos @ +
+    end
+
+    REM cross hair characters
+    let vbar: $42 end
+    let hbar: $40 end
+
     REM cursor positioning data used in edit mode.
     let position_data data
         xpos: screen_width 2 /
-        ypos: screen_height 2 /
+        ypos: field_height 2 /
+    end
+
+    REM save space for cross hair overlay.
+    let cross_hair_data data
+        save_down: (0)
+        save_left: (0)
+        save_right: (0)
+        save_up: (0)
     end
 end
 
@@ -211,7 +309,7 @@ let show_banner def
         next
     end
 
-    let banner_start: screen screen_width field_height * + end
+    let banner_start: field_end end
     let banner_end: banner_start screen_width + end
     let reverse_bit: $80 end
     let reverse_space: $a0 end
@@ -428,6 +526,8 @@ let screen: $8000 end
 let screen_width: 40 end
 let screen_height: 25 end
 let field_height: screen_height 1 - end
+let field_size: field_height screen_width * end
+let field_end: screen field_height screen_width * + end
 
 REM scratch buffer and buffer pointers.
 REM this *must* be the last data block in the program to ensure that the
