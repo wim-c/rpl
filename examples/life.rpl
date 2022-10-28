@@ -44,8 +44,8 @@ let edit_mode def
     noop idle_handler !
 
     REM display the edit mode banner.
-    REM "EDIT | SPACE CRSR (G)O (S)TEP (C)LEAR"
-    "\5\4\9\20 \66 \19\16\1\3\5 \3\18\19\18 (\7)\15 (\19)\20\5\16 (\3)\12\5\1\18" show_banner gosub
+    REM "EDIT | SPC CRSR (G)O (S)TEP (C)LR (R)ND"
+    "\5\4\9\20 \66 \19\16\3 \3\18\19\18 (\7)\15 (\19)\20\5\16 (\3)\12\18 (\18)\14\4" show_banner gosub
 
     REM show the cross hair.
     show_cross_hair gosub
@@ -72,6 +72,8 @@ let edit_mode def
             toggle_cell 0
         else dup key_c = cont if
             clear_field 1
+        else dup key_r = cont if
+            random_field 1
         else dup key_s = cont if
             next_gen_single_step_mode set_mode_request 1
         else dup key_g = cont if
@@ -199,6 +201,18 @@ let edit_mode def
     let clear_field def
         field_end 1 - screen for
             space fn poke
+        next
+    end
+
+    REM draw a random play field
+    let random_field def
+        field_end 1 - screen for
+            rnd 7 and 3 < if
+                cell
+            else
+                space
+            end
+            fn poke
         next
     end
 
@@ -501,6 +515,7 @@ let key_h: $48 end
 let key_j: $4a end
 let key_k: $4b end
 let key_l: $4c end
+let key_r: $52 end
 let key_s: $53 end
 
 let key_down: $11 end
