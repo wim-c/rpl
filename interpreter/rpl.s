@@ -166,16 +166,13 @@ push15      cmp #$40        ; Check sign.
 
 ; Opcode jump table starting from byte code $80 upward.
 !word exec_pusha
-!word exec_pushn
-!word exec_pushp
+!word exec_pushr
 !word exec_add
 !word exec_and
 !word exec_beqa
-!word exec_beqn
-!word exec_beqp
+!word exec_beqr
 !word exec_bnea
-!word exec_bnen
-!word exec_bnep
+!word exec_bner
 !word exec_chr
 !word exec_clr
 !word exec_div
@@ -190,12 +187,10 @@ push15      cmp #$40        ; Check sign.
 !word exec_get
 !word exec_gosub
 !word exec_gosuba
-!word exec_gosubn
-!word exec_gosubp
+!word exec_gosubr
 !word exec_goto
 !word exec_gotoa
-!word exec_goton
-!word exec_gotop
+!word exec_gotor
 !word exec_gt
 !word exec_input
 !word exec_int
@@ -241,35 +236,27 @@ exec_pusha      lda (pc),y      ; fetch hi byte of word
                 jmp decodenext  ; decode next opcode
 +               inc pc+1
                 bne -
-;
-; Push backward relative word.  Pushes the word address-offset where address is
-; the address of the opcode and offset is encoded as an unsigned single byte
-; parameter.
-;
-exec_pushn      tya             ; Subtract argument+1 from pc.
-                clc
-                sbc (pc),y
-                sta pslo,x      ; Push lo byte.
-                lda pc+1        ; Push hi byte.
-                sbc #0
-                sta pshi,x
-                dex
-                jmp decodenext  ; Decode next opcode.
 
 ;
-; Push forward relative word.  Pushes the word address+2+offset where address
-; is the address of the opcode and offset is encoded as an unsigned single byte
-; parameter.
+; Push relative word.  Pushes the word address-128+offset where address is the
+; address of the operand and offset is encoded as an unsigned single byte
+; operand.
 ;
-exec_pushp      tya             ; Add argument+1 to pc.
-                sec
-                adc (pc),y
+
+exec_pushr      tya
+                clc
+                adc (pc),y      ; Add operand to lo byte of pc.
+                eor #$80        ; Subtract 128.
                 sta pslo,x      ; Push lo byte.
-                lda pc+1        ; push hi byte
+                bmi +           ; Branch if underflow occurred.
+                lda pc+1        ; Compute hi byte of result (no underflow).
                 adc #0
-                sta pshi,x
+                jmp ++
++               lda pc+1        ; Compute hi byte of result (undeflow).
+                sbc #0
+++              sta pshi,x      ; Push hi byte.
                 dex
-                jmp decodenext  ; Decode next opcode.
+                jmp decodenext
 
 ;
 ; Pop tos and nos and push their sum.
@@ -339,22 +326,11 @@ exec_gosuba     tya             ; Push pc+1 as return address.
 ; of the next opcode and target is next-2-offset where offset is encoded as an
 ; unsigned single byte parameter.
 ;
-exec_gosubn     lda pc+1        ; Push pc as return address.
+exec_gosubr     lda pc+1        ; Push pc as return address.
                 pha
                 tya
                 pha
-                jmp exec_goton  ; Goto backward relative address.
-
-;
-; Push next-1 on return stack and set pc to target.  Here next is the address
-; of the next opcode and target is next+offset where offset is encoded as an
-; unsigned single byte parameter.
-;
-exec_gosubp     lda pc+1        ; Push pc as return address.
-                pha
-                tya
-                pha
-                jmp exec_gotop  ; Goto forward relative address.
+                jmp exec_gotor  ; Goto relative address.
 
 ;
 ; Pop tos and set it as pc.
@@ -382,28 +358,20 @@ exec_gotoa      lda (pc),y      ; Get hi byte.
                 bne -
 
 ;
-; Set pc to address-offset where address is the address of the opcode and
-; offset is encoded as an unsigned single byte parameter.
+; Set pc to address-128+offset where address is the address of the operand and
+; offset is encoded as an unsigned single byte operand.
 ;
-exec_goton      tya             ; Subtract offset+1 from pc.
+exec_gotor      tya             ; Add offset to pc.
                 clc
-                sbc (pc),y
-                tay             ; Set pc offset.
-                bcs +
-                dec pc+1        ; Correct for page boundary.
-+               jmp decode      ; Decode next opcode.
-
-;
-; Set pc to address+2+offset where address is the address of the opcode and
-; offset is encoded as an unsigned single byte parameter.
-;
-exec_gotop      tya             ; Add offset+1 to pc.
-                sec
                 adc (pc),y
-                tay             ; Set pc offset.
-                bcc +
-                inc pc+1        ; Correct for page boundary.
-+               jmp decode      ; Decode next opcode.
+                eor #$80        ; Subtract 128.
+                tay             ; Set as lo byte of pc.
+                bmi +           ; Branch if underflow occurred.
+                bcc ++          ; Branch if pc on same page.
+                inc pc+1        ; Increment pc page.
++               bcs ++          ; Branch if pc on same page.
+                dec pc+1        ; Decrement pc page.
+++              jmp decode      ; Decode next opcode.
 
 ;
 ; Pop tos and branch to target if it is zero.  Target is encoded as a two byte
@@ -422,17 +390,8 @@ skip_hi         iny             ; Skip hi byte of operand.
 ; where address is the address of the opcode and offset is encoded as an
 ; unsigned single byte parameter.
 ;
-exec_beqn       jsr iszero      ; Test and pop tos.
-                beq exec_goton  ; Goto backward relative address if zero.
-                jmp decodenext  ; Skip operand and decode next opcode.
-
-;
-; Pop tos and branch to target if it is zero.  Target equals address+2+offset
-; where address is the address of the opcode and offset is encoded as an
-; unsigned single byte parameter.
-;
-exec_beqp       jsr iszero      ; Test and pop tos.
-                beq exec_gotop  ; Goto forward relative address if zero.
+exec_beqr       jsr iszero      ; Test and pop tos.
+                beq exec_gotor  ; Goto relative address if zero.
                 jmp decodenext  ; Skip operand and decode next opcode.
 
 ;
@@ -448,17 +407,8 @@ exec_bnea       jsr iszero      ; Test and pop tos.
 ; where address is the address of the opcode and offset is encoded as an
 ; unsigned single byte parameter.
 ;
-exec_bnen       jsr iszero      ; Test and pop tos.
-                bne exec_goton  ; Goto backward relative address if not zero.
-                jmp decodenext  ; Skip operand and decode next opcode.
-
-;
-; Pop tos and branch to target if it is non-zero.  Target equals
-; address+2+offset where address is the address of the opcode and offset is
-; encoded as an unsigned single byte parameter.
-;
-exec_bnep       jsr iszero      ; Test and pop tos.
-                bne exec_gotop  ; Goto forward relative address if not zero.
+exec_bner       jsr iszero      ; Test and pop tos.
+                bne exec_gotor  ; Goto relative address if not zero.
                 jmp decodenext  ; Skip operand and decode next opcode.
 
 ;

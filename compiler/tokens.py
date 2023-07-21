@@ -82,8 +82,7 @@ class Node:
     # the encoding of the mark (relative or absolute).
     def assign_offset_address(self, address, target):
         delta = target - address
-        if (delta <= 0 and delta >= -0xff) or \
-                (delta >= 2 and delta <= 0x101):
+        if -0x80 < delta and delta <= 0x80:
             # Relative encoding of target.
             return address + 2
         else:
@@ -133,11 +132,11 @@ class Node:
 
     def emit_offset(self, code, address, target, formatter):
         delta = target - address
-        if delta <= 0 and delta >= -0xff:
-            return formatter.emit(address, bytes([code + 2, -delta]), self)
-        elif delta >= 2 and delta <= 0x101:
-            return formatter.emit(address, bytes([code + 3, delta - 2]), self)
+        if -0x80 < delta and delta <= 0x80:
+            # Emit address relative target.
+            return formatter.emit(address, bytes([code + 2, delta + 127]), self)
         else:
+            # Emit absolute target.
             hi, lo = (target >> 8) & 0xff, target & 0xff
             return formatter.emit(address, bytes([code + 1, hi, lo]), self)
 
@@ -389,59 +388,59 @@ def counter(start):
         return value
     return inc
 
-# c0-c2 are used for word value push operations.
-step = counter(0xc3)
+# c0-c1 are used for word value push operations.
+step = counter(0xc2)
 
 Command.code = {
-    Command.ADD: step(),        # c3
-    Command.AND: step(),        # c4
-    Command.BEQ: step(3) - 1,   # c5 (abs) c6 (rel -ve) c7 (rel +ve)
-    Command.BNE: step(3) - 1,   # c8 (abs) c9 (rel -ve) ca (rel +ve)
-    Command.CHR: step(),        # cb
-    Command.CLR: step(),        # cc
-    Command.DIV: step(),        # cd
-    Command.DIVMOD: step(),     # ce
-    Command.DROP: step(),       # cf
-    Command.DUP: step(),        # d0
-    Command.EQ: step(),         # d1
-    Command.FETCH: step(),      # d2
-    Command.FN: step(),         # d3
-    Command.FOR: step(),        # d4
-    Command.GEQ: step(),        # d5
-    Command.GET: step(),        # d6
-    Command.GOSUB: step(4),     # d7 (stk) d8 (abs) d9 (rel -ve) da (rel +ve)
-    Command.GOTO: step(4),      # db (stk) dc (abs) dd (rel -ve) de (rel +ve)
-    Command.GT: step(),         # df
-    Command.INPUT: step(),      # e0
-    Command.INT: step(),        # e1
-    Command.LEQ: step(),        # e2
-    Command.LT: step(),         # e3
-    Command.MOD: step(),        # e4
-    Command.MUL: step(),        # e5
-    Command.NEQ: step(),        # e6
-    Command.NEW: step(),        # e7
-    Command.NEXT: step(),       # e8
-    Command.NOT: step(),        # e9
-    Command.ON: step(),         # ea
-    Command.OR: step(),         # eb
-    Command.OVER: step(),       # ec
-    Command.PEEK: step(),       # ed
-    Command.PICK: step(),       # ee
-    Command.POKE: step(),       # ef
-    Command.PRINT: step(),      # f0
-    Command.REQ: step(),        # f1
-    Command.RETURN: step(),     # f2
-    Command.RND: step(),        # f3
-    Command.RNE: step(),        # f4
-    Command.ROLL: step(),       # f5
-    Command.ROT: step(),        # f6
-    Command.STOP: step(),       # f7
-    Command.STORE: step(),      # f8
-    Command.STR: step(),        # f9
-    Command.SUB: step(),        # fa
-    Command.SWAP: step(),       # fb
-    Command.SYS: step(),        # fc
-    Command.XOR: step(),        # fd
+    Command.ADD: step(),        # c2
+    Command.AND: step(),        # c3
+    Command.BEQ: step(2) - 1,   # c4 (abs) c5 (rel)
+    Command.BNE: step(2) - 1,   # c6 (abs) c7 (rel)
+    Command.CHR: step(),        # c8
+    Command.CLR: step(),        # c9
+    Command.DIV: step(),        # ca
+    Command.DIVMOD: step(),     # cb
+    Command.DROP: step(),       # cc
+    Command.DUP: step(),        # cd
+    Command.EQ: step(),         # ce
+    Command.FETCH: step(),      # cf
+    Command.FN: step(),         # d0
+    Command.FOR: step(),        # d1
+    Command.GEQ: step(),        # d2
+    Command.GET: step(),        # d3
+    Command.GOSUB: step(3),     # d4 (stk) d5 (abs) d6 (rel)
+    Command.GOTO: step(3),      # d7 (stk) d8 (abs) d9 (rel)
+    Command.GT: step(),         # da
+    Command.INPUT: step(),      # db
+    Command.INT: step(),        # dc
+    Command.LEQ: step(),        # dd
+    Command.LT: step(),         # de
+    Command.MOD: step(),        # df
+    Command.MUL: step(),        # e0
+    Command.NEQ: step(),        # e1
+    Command.NEW: step(),        # e2
+    Command.NEXT: step(),       # e3
+    Command.NOT: step(),        # e4
+    Command.ON: step(),         # e5
+    Command.OR: step(),         # e6
+    Command.OVER: step(),       # e7
+    Command.PEEK: step(),       # e8
+    Command.PICK: step(),       # e9
+    Command.POKE: step(),       # ea
+    Command.PRINT: step(),      # eb
+    Command.REQ: step(),        # ec
+    Command.RETURN: step(),     # ed
+    Command.RND: step(),        # ee
+    Command.RNE: step(),        # ef
+    Command.ROLL: step(),       # f0
+    Command.ROT: step(),        # f1
+    Command.STOP: step(),       # f2
+    Command.STORE: step(),      # f3
+    Command.STR: step(),        # f4
+    Command.SUB: step(),        # f5
+    Command.SWAP: step(),       # f6
+    Command.SYS: step(),        # f7
+    Command.XOR: step(),        # f8
 }
 
 # Suequence of data blocks that together form a single block of data
