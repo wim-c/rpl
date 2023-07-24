@@ -13,25 +13,6 @@ class Actions:
 
     # Begin of method section as defined by rules.txt.
 
-    def compare_not(self, optimizer):
-        compare, not_ = optimizer.rewind(2)
-        op = compare.get_type()
-        if op == tokens.Command.LT:
-            op = tokens.Command.GEQ
-        elif op == tokens.Command.LEQ:
-            op = tokens.Command.GT
-        elif op == tokens.Command.NEQ:
-            op = tokens.Command.EQ
-        elif op == tokens.Command.EQ:
-            op = tokens.Command.NEQ
-        elif op == tokens.Command.GT:
-            op = tokens.Command.LEQ
-        elif op == tokens.Command.GEQ:
-            op = tokens.Command.LT
-        node = tokens.Command(op).from_node(not_)
-        optimizer.push_node(node)
-        return True
-
     def const_branch(self, optimizer):
         branch = optimizer.peek()
         if branch.has_data():
@@ -266,6 +247,22 @@ class Actions:
         optimizer.open_scope()
 
         # Program node has been reduced.
+        return True
+
+    # Rewrite pseudo operators.
+    def push_pseudo_op(self, optimizer):
+        pseudo_node = optimizer.rewind()
+        pseudo_node_type = pseudo_node.get_type()
+        if pseudo_node_type == tokens.Command.GEQ:
+            op = tokens.Command.LT
+        elif pseudo_node_type == tokens.Command.LEQ:
+            op = tokens.Command.GT
+        elif pseudo_node_type == tokens.Command.NEQ:
+            op = tokens.Command.EQ
+        not_node = tokens.Command(tokens.Command.NOT).from_node(pseudo_node)
+        op_node = tokens.Command(op).from_node(pseudo_node)
+        optimizer.push_node(not_node)
+        optimizer.push_node(op_node)
         return True
 
     # Reduce a Statements node.

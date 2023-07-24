@@ -24,20 +24,11 @@ def binop_div(x, y):
 def binop_lt(x, y):
     return -1 if x < y else 0
 
-def binop_leq(x, y):
-    return -1 if x <= y else 0
-
-def binop_neq(x, y):
-    return -1 if x != y else 0
-
 def binop_eq(x, y):
     return -1 if x == y else 0
 
 def binop_gt(x, y):
     return -1 if x > y else 0
-
-def binop_geq(x, y):
-    return -1 if x >= y else 0
 
 def binop_mod(x, y):
     ay = abs(y)
@@ -63,11 +54,8 @@ binop_add.arity = 2
 binop_sub.arity = 2
 binop_div.arity = 2
 binop_lt.arity = 2
-binop_leq.arity = 2
-binop_neq.arity = 2
 binop_eq.arity = 2
 binop_gt.arity = 2
-binop_geq.arity = 2
 binop_mod.arity = 2
 binop_and.arity = 2
 binop_or.arity = 2

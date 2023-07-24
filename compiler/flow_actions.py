@@ -6,29 +6,29 @@ import flow_rules
 class FlowActions:
     # Begin of method section as defined by flow_rules.txt.
 
-    def cond_goto_mark(self, optimizer):
-        cond, goto, mark = optimizer.peek(3)
-        if cond.mark is not mark or goto.mark is None:
+    def branch_goto_mark(self, optimizer):
+        branch, goto, mark = optimizer.peek(3)
+        if branch.mark is not mark or goto.mark is None:
             return False
-        elif cond.get_type() == tokens.Command.BEQ:
-            cond_type = tokens.Command.BNE
+        elif branch.get_type() == tokens.Command.BEQ:
+            branch_type = tokens.Command.BNE
         else:
-            cond_type = tokens.Command.BEQ
-        node = tokens.Command(cond_type, mark=goto.mark).from_node(cond)
+            branch_type = tokens.Command.BEQ
+        node = tokens.Command(branch_type, mark=goto.mark).from_node(branch)
         optimizer.rewind(3)
         optimizer.push_node(mark)
         optimizer.push_node(node)
         return True
 
-    def cond_return_mark(self, optimizer):
-        cond, return_, mark = optimizer.peek(3)
-        if cond.mark is not mark:
+    def branch_return_mark(self, optimizer):
+        branch, return_, mark = optimizer.peek(3)
+        if branch.mark is not mark:
             return False
-        elif cond.get_type() == tokens.Command.BEQ:
-            cond_type = tokens.Command.RNE
+        elif branch.get_type() == tokens.Command.BEQ:
+            branch_type = tokens.Command.RNE
         else:
-            cond_type = tokens.Command.REQ
-        node = tokens.Command(cond_type).from_node(cond)
+            branch_type = tokens.Command.REQ
+        node = tokens.Command(branch_type).from_node(branch)
         optimizer.rewind(3)
         optimizer.push_node(mark)
         optimizer.push_node(node)
@@ -83,6 +83,19 @@ class FlowActions:
         optimizer.push_node(mark)
         return True
 
+    def negate_branch(self, optimizer):
+        _, branch = optimizer.rewind(2)
+
+        # Optimize a not operator on a logical value when followed by a branch.
+        if branch.get_type() == tokens.Command.BEQ:
+            type = tokens.Command.BNE
+        else:
+            type = tokens.Command.BEQ
+
+        node = tokens.Command(type, command=branch).from_node(branch)
+        optimizer.push_node(node)
+        return True
+
     def push_byte_data(self, optimizer):
         byte_data = optimizer.rewind()
 
@@ -102,9 +115,9 @@ class FlowActions:
         optimizer.emit_node(byte_data)
         return True
 
-    def push_cond(self, optimizer):
-        cond = optimizer.peek()
-        if (marked := cond.mark.marked) is None:
+    def push_branch(self, optimizer):
+        branch = optimizer.peek()
+        if (marked := branch.mark.marked) is None:
             # Mark is not followed by a final command.  Nothing to optimize.
             return False
         elif (marked_type := marked.get_type()) != tokens.Command.RETURN and \
@@ -117,19 +130,19 @@ class FlowActions:
         optimizer.rewind()
 
         # Get the branch type (either BEQ or BNE).
-        cond_type = cond.get_type()
+        branch_type = branch.get_type()
 
         if marked_type == tokens.Command.GOTO:
             # Replace branch to a GOTO by a short circuited branch.
-            node = tokens.Command(cond_type, mark=marked.mark)
-        elif cond_type == tokens.Command.BEQ:
+            node = tokens.Command(branch_type, mark=marked.mark)
+        elif branch_type == tokens.Command.BEQ:
             # Replace BEQ to a RETURN by a REQ.
             node = tokens.Command(tokens.Command.REQ)
         else:
             # Replace BNE to a RETURN by a RNE.
             node = tokens.Command(tokens.Command.RNE)
 
-        node.from_node(cond)
+        node.from_node(branch)
         optimizer.push_node(node)
         return True
 
@@ -180,34 +193,26 @@ class FlowActions:
         optimizer.rewind()
         return True
 
-    def word_cond(self, optimizer):
-        word, cond = optimizer.rewind(2)
-        type = cond.get_type()
-        if (type == tokens.Command.BEQ and word.value == 0) or \
-                (type == tokens.Command.BNE and word.value != 0):
-            node = tokens.Command(tokens.Command.GOTO, command=cond).from_node(cond)
+    def word_branch(self, optimizer):
+        word, branch = optimizer.rewind(2)
+        type = branch.get_type()
+        if (type == tokens.Command.BEQ and word.value == 0) \
+                or (type == tokens.Command.BNE and word.value != 0):
+            node = tokens.Command(tokens.Command.GOTO, command=branch).from_node(branch)
             optimizer.push_node(node)
         return True
 
-    def word_eq_cond(self, optimizer):
-        word, eq, cond = optimizer.peek(3)
+    def word_eq_branch(self, optimizer):
+        word, eq, branch = optimizer.peek(3)
         if word.value != 0:
             return False
-        elif cond.get_type() == tokens.Command.BEQ:
+        elif branch.get_type() == tokens.Command.BEQ:
             type = tokens.Command.BNE
         else:
             type = tokens.Command.BEQ
-        node = tokens.Command(type, command=cond).from_node(cond)
+        node = tokens.Command(type, command=branch).from_node(branch)
         optimizer.rewind(3)
         optimizer.push_node(node)
-        return True
-
-    def word_neq_cond(self, optimizer):
-        word, neq, cond = optimizer.peek(3)
-        if word.value != 0:
-            return False
-        optimizer.rewind(3)
-        optimizer.push_node(cond)
         return True
 
     # End of method section as defined by flow_rules.txt.  Helper methods

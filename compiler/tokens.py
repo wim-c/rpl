@@ -366,14 +366,11 @@ Command.ops = {
     Command.AND: ops.binop_and,
     Command.DIV: ops.binop_div,
     Command.EQ: ops.binop_eq,
-    Command.GEQ: ops.binop_geq,
     Command.GT: ops.binop_gt,
     Command.INT: ops.unop_int,
-    Command.LEQ: ops.binop_leq,
     Command.LT: ops.binop_lt,
     Command.MOD: ops.binop_mod,
     Command.MUL: ops.binop_mul,
-    Command.NEQ: ops.binop_neq,
     Command.NOT: ops.unop_not,
     Command.OR: ops.binop_or,
     Command.SUB: ops.binop_sub,
@@ -406,41 +403,38 @@ Command.code = {
     Command.FETCH: step(),      # cf
     Command.FN: step(),         # d0
     Command.FOR: step(),        # d1
-    Command.GEQ: step(),        # d2
-    Command.GET: step(),        # d3
-    Command.GOSUB: step(3),     # d4 (stk) d5 (abs) d6 (rel)
-    Command.GOTO: step(3),      # d7 (stk) d8 (abs) d9 (rel)
-    Command.GT: step(),         # da
-    Command.INPUT: step(),      # db
-    Command.INT: step(),        # dc
-    Command.LEQ: step(),        # dd
-    Command.LT: step(),         # de
-    Command.MOD: step(),        # df
-    Command.MUL: step(),        # e0
-    Command.NEQ: step(),        # e1
-    Command.NEW: step(),        # e2
-    Command.NEXT: step(),       # e3
-    Command.NOT: step(),        # e4
-    Command.ON: step(),         # e5
-    Command.OR: step(),         # e6
-    Command.OVER: step(),       # e7
-    Command.PEEK: step(),       # e8
-    Command.PICK: step(),       # e9
-    Command.POKE: step(),       # ea
-    Command.PRINT: step(),      # eb
-    Command.REQ: step(),        # ec
-    Command.RETURN: step(),     # ed
-    Command.RND: step(),        # ee
-    Command.RNE: step(),        # ef
-    Command.ROLL: step(),       # f0
-    Command.ROT: step(),        # f1
-    Command.STOP: step(),       # f2
-    Command.STORE: step(),      # f3
-    Command.STR: step(),        # f4
-    Command.SUB: step(),        # f5
-    Command.SWAP: step(),       # f6
-    Command.SYS: step(),        # f7
-    Command.XOR: step(),        # f8
+    Command.GET: step(),        # d2
+    Command.GOSUB: step(3),     # d3 (stk) d4 (abs) d5 (rel)
+    Command.GOTO: step(3),      # d6 (stk) d7 (abs) d8 (rel)
+    Command.GT: step(),         # d9
+    Command.INPUT: step(),      # da
+    Command.INT: step(),        # db
+    Command.LT: step(),         # dc
+    Command.MOD: step(),        # dd
+    Command.MUL: step(),        # de
+    Command.NEW: step(),        # df
+    Command.NEXT: step(),       # e0
+    Command.NOT: step(),        # e1
+    Command.ON: step(),         # e2
+    Command.OR: step(),         # e3
+    Command.OVER: step(),       # e4
+    Command.PEEK: step(),       # e5
+    Command.PICK: step(),       # e6
+    Command.POKE: step(),       # e7
+    Command.PRINT: step(),      # e8
+    Command.REQ: step(),        # e9
+    Command.RETURN: step(),     # ea
+    Command.RND: step(),        # eb
+    Command.RNE: step(),        # ec
+    Command.ROLL: step(),       # ed
+    Command.ROT: step(),        # ee
+    Command.STOP: step(),       # ef
+    Command.STORE: step(),      # f0
+    Command.STR: step(),        # f1
+    Command.SUB: step(),        # f2
+    Command.SWAP: step(),       # f3
+    Command.SYS: step(),        # f4
+    Command.XOR: step(),        # f5
 }
 
 # Suequence of data blocks that together form a single block of data

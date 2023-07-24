@@ -183,7 +183,6 @@ push15      cmp #$40        ; Check sign.
 !word exec_fetch
 !word exec_fn
 !word exec_for
-!word exec_ge
 !word exec_get
 !word exec_gosub
 !word exec_gosuba
@@ -194,11 +193,9 @@ push15      cmp #$40        ; Check sign.
 !word exec_gt
 !word exec_input
 !word exec_int
-!word exec_le
 !word exec_lt
 !word exec_mod
 !word exec_mul
-!word exec_ne
 !word exec_new
 !word exec_next
 !word exec_not
@@ -633,90 +630,58 @@ exec_dup        lda pshi+1,x    ; Push hi byte.
                 jmp decode      ; Decode next opcode.
 
 ;
-; Support routine for signed comparison operators.  Drop tos and nos and push 0
-; if (v EOR n) is set, or -1 otherwise.
+; Drop tos and nos.  Push -1 (true) if nos equals tos or 0 (false) otherwise.
 ;
-binge           bvs +           ; If overflow then n flag holds result.
-                eor #$80        ; Negate n flag (note next branch is taken).
-
-;
-; Support routine for signed comparison operators.  Drop tos and push -1 if
-; (v EOR n) is set, or 0 otherwise.
-;
-binlt           bvc +           ; If no overflow then n flag holds result.
-                eor #$80        ; Negate n flag.
-+               bmi bintrue     ; If ge (or lt) and flags indicate >= (or <)
-                                ; set result to -1.  Otherwise set result to 0.
-binfalse        lda #0          ; Load false byte.
-                beq +           ; Skip next instruction.
-bintrue         lda #$ff        ; Load true byte.
-+               sta pslo+1,x    ; Set tos to 0 or -1.
-                sta pshi+1,x
-                jmp decode      ; Decode next opcode.
-
-;
-; Drop tos and nos.  Push -1 (true) if nos <= tos or 0 (false) otherwise.
-;
-exec_le         inx
-                lda pslo,x      ; Compare tos to nos.
+exec_eq         inx
+                lda pslo,x      ; Compare lo bytes.
                 cmp pslo+1,x
-                lda pshi,x
-                sbc pshi+1,x
-                jmp binge       ; True if tos greater or equal nos.
+                bne setfalse    ; False if bytes differ.
+                lda pshi,x      ; Compare hi bytes.
+                cmp pshi+1,x
+                bne setfalse    ; False if bytes differ.
+                beq settrue     ; True if tos equals nos.
 
 ;
-; Drop tos and nos.  Push -1 (true) if nos < tos or 0 (false) otherwise.
+; Drop tos and nos and compare signed words.  Push -1 (true) if nos < tos or 0
+; (false) otherwise.
 ;
 exec_lt         inx
                 lda pslo+1,x    ; Compare nos to tos.
                 cmp pslo,x
                 lda pshi+1,x
                 sbc pshi,x
-                jmp binlt       ; True if nos less than tos.
+                jmp setneg      ; Push result based on flags.
 
 ;
-; Drop tos and nos.  Push -1 (true) if nos >= tos or 0 (false) otherwise.
-;
-exec_ge         inx
-                lda pslo+1,x    ; Compare nos to tos.
-                cmp pslo,x
-                lda pshi+1,x
-                sbc pshi,x
-                jmp binge       ; True if nos greater or equal tos.
-
-;
-; Drop tos and nos.  Push -1 (true) if nos > tos or 0 (false) otherwise.
+; Drop tos and nos and compare signed words.  Push -1 (true) if nos > tos or 0
+; (false) otherwise.
 ;
 exec_gt         inx
                 lda pslo,x      ; Compare tos to nos.
                 cmp pslo+1,x
                 lda pshi,x
                 sbc pshi+1,x
-                jmp binlt       ; True if tos less than nos.
 
 ;
-; Drop tos and nos.  Push -1 (true) if nos == tos or 0 (false) otherwise.
+; Push result of signed word compare based on n and v flags.
 ;
-exec_eq         inx
-                lda pslo,x      ; Compare lo bytes.
-                cmp pslo+1,x
-                bne binfalse    ; False if bytes differ.
-                lda pshi,x      ; Compare hi bytes.
-                cmp pshi+1,x
-                bne binfalse    ; False if btes differ.
-                beq bintrue     ; True if tos equals nos.
+setneg          bvc +
+                cmp #$80        ; Negate the n flag on overflow.
++               bmi settrue     ; Push true if negative.
 
 ;
-; Drop tos and nos.  Push -1 (true) if nos != tos or 0 (false) otherwise.
+; Push false (0).
 ;
-exec_ne         inx
-                lda pslo,x      ; Compare lo bytes.
-                cmp pslo+1,x
-                bne bintrue     ; True if bytes differ.
-                lda pshi,x      ; Compare hi bytes.
-                cmp pshi+1,x
-                bne bintrue     ; True if bytes differ.
-                beq binfalse    ; False if tos equals nos.
+setfalse        lda #0          ; Load false byte.
+                beq +           ; Skip next instruction.
+
+;
+; Push true (-1).
+;
+settrue         lda #$ff        ; Load true byte.
++               sta pslo+1,x    ; Set tos to 0 or -1.
+                sta pshi+1,x
+                jmp decode      ; Decode next opcode.
 
 ;
 ; Pop tos and push word at address given by tos.

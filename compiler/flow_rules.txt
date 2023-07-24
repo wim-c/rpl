@@ -8,10 +8,10 @@ push_mark?  :  mark
 push_gosub?  :  gosub
 
 # Generalization of conditional branches.
-cond  :>  beq bne
+branch  :>  beq bne
 
 # Include referenced code and possibly optimize branch target.
-push_cond?  :  cond
+push_branch?  :  branch
 
 # Include referenced code and possibly optimize jump target.
 push_goto?  :  goto
@@ -19,20 +19,25 @@ push_goto?  :  goto
 # Simplify zero offset goto.
 goto_mark?  :  goto mark
 
-# Simplify conditional branch over a GOTO or RETURN command..
-cond_goto_mark?    :  cond goto mark
-cond_return_mark?  :  cond return mark
+# Simplify conditional branch over a GOTO or RETURN command.
+branch_goto_mark?    :  branch goto mark
+branch_return_mark?  :  branch return mark
 
 # Tail call optimization.
 gosub_return  :  gosub return
 
-# Simplify costant conditional branches
-word_cond  :  word cond
-word_eq_cond?  :  word = cond
-word_neq_cond?  :  word <> cond
+# Simplify constant conditional commands.
+word_branch      :  word branch
+word_eq_branch?  :  word = branch
+
+# Operators that result in a boolean value (0 or -1).
+boolop  :>  < = >
+
+# Simplify negated conditional commands.
+negate_branch  :  boolop not branch
 
 # Commands
-command  :>  ! * + - / /mod < <= <> = > >= @ and beq bne chr$ clr drop dup fn
+command  :>  ! * + - / /mod @ and beq bne boolop chr$ clr drop dup fn
 command  :>  for get gosub goto input int mod new next not on or over peek
 command  :>  pick poke print req return rnd rne roll rot stop str$ swap sys xor
 

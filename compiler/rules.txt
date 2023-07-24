@@ -1,6 +1,5 @@
 # Note that the type hierarchy that is defined with the :> relation *must* be a
-# lattice.  This is not checked the rule compiler!  For example, this is why
-# compare is explicitly a subtype of binop here.
+# lattice.  This is not checked the rule compiler!
 
 # Generalization of byte literals.
 literal  :>  chars float string
@@ -21,6 +20,12 @@ push_program       :  program
 push_statements    :  statements
 push_symbol        :  symbol
 
+# Pseudo operators that have no native byte code support.
+pseudo_op  :>  <= <> >=
+
+# Rewrite pseudo opearators.
+push_pseudo_op  :  pseudo_op
+
 # Handle the different let bindings
 let_data   :  let data
 let_macro  :  let macro
@@ -30,7 +35,7 @@ let_proc   :  let proc
 unop  :>  int not
 
 # Binary operators.
-binop  :>  * + - / mod and or xor compare
+binop  :>  * + - / < = > and mod or xor
 
 # Unary operators on words.
 word_unop  :  word unop
@@ -68,12 +73,6 @@ mark_goto?   :  mark goto
 mark_final?  :  mark return
 mark_final?  :  mark stop
 mark_mark?   :  mark mark
-
-# Generalization of boolean binary operators.
-compare  :>  < <= <> = > >=
-
-# Simplify negated boolean operators
-compare_not  :  compare not
 
 # Simplify dup of a compile time constant
 const_dup : const dup
